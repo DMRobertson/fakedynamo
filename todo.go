@@ -136,21 +136,6 @@ func (d *DB) DeleteResourcePolicyRequest(input *dynamodb.DeleteResourcePolicyInp
 	panic("implement me")
 }
 
-func (d *DB) DeleteTable(input *dynamodb.DeleteTableInput) (*dynamodb.DeleteTableOutput, error) {
-	// TODO implement me
-	panic("implement me")
-}
-
-func (d *DB) DeleteTableWithContext(context aws.Context, input *dynamodb.DeleteTableInput, option ...request.Option) (*dynamodb.DeleteTableOutput, error) {
-	// TODO implement me
-	panic("implement me")
-}
-
-func (d *DB) DeleteTableRequest(input *dynamodb.DeleteTableInput) (*request.Request, *dynamodb.DeleteTableOutput) {
-	// TODO implement me
-	panic("implement me")
-}
-
 func (d *DB) DescribeBackup(input *dynamodb.DescribeBackupInput) (*dynamodb.DescribeBackupOutput, error) {
 	// TODO implement me
 	panic("implement me")

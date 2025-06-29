@@ -1,7 +1,6 @@
 package fakedynamo_test
 
 import (
-	"cmp"
 	"fmt"
 	"slices"
 	"testing"
@@ -13,6 +12,7 @@ import (
 )
 
 func TestDB_ListTables_ValidationErrors(t *testing.T) {
+	t.Parallel()
 	db := fakedynamo.NewDB()
 	result, err := db.ListTables(&dynamodb.ListTablesInput{Limit: ptr[int64](0)})
 	assert.ErrorContains(t, err, "Limit must be between 1 and 100")
@@ -24,19 +24,12 @@ func TestDB_ListTables_ValidationErrors(t *testing.T) {
 }
 
 func TestDB_ListTables_DefaultLimitSize(t *testing.T) {
+	t.Parallel()
 	db := fakedynamo.NewDB()
 	for i := range 200 {
-		_, err := db.CreateTable(&dynamodb.CreateTableInput{
-			AttributeDefinitions: []*dynamodb.AttributeDefinition{{
-				AttributeName: ptr("id"),
-				AttributeType: ptr(dynamodb.ScalarAttributeTypeS),
-			}},
-			KeySchema: []*dynamodb.KeySchemaElement{{
-				AttributeName: ptr("id"),
-				KeyType:       ptr(dynamodb.KeyTypeHash),
-			}},
-			TableName: ptr(fmt.Sprintf("table-%d", i)),
-		})
+		input := exampleCreateTableInput()
+		input.TableName = ptr(fmt.Sprintf("table-%d", i))
+		_, err := db.CreateTable(input)
 		require.NoError(t, err)
 	}
 
@@ -46,22 +39,15 @@ func TestDB_ListTables_DefaultLimitSize(t *testing.T) {
 }
 
 func TestDB_ListTables_Pagination(t *testing.T) {
+	t.Parallel()
 	db := fakedynamo.NewDB()
 	expectedNames := make([]*string, 250)
 	for i := range expectedNames {
+		input := exampleCreateTableInput()
 		tableName := fmt.Sprintf("table-%d", i)
 		expectedNames[i] = &tableName
-		_, err := db.CreateTable(&dynamodb.CreateTableInput{
-			AttributeDefinitions: []*dynamodb.AttributeDefinition{{
-				AttributeName: ptr("id"),
-				AttributeType: ptr(dynamodb.ScalarAttributeTypeS),
-			}},
-			KeySchema: []*dynamodb.KeySchemaElement{{
-				AttributeName: ptr("id"),
-				KeyType:       ptr(dynamodb.KeyTypeHash),
-			}},
-			TableName: &tableName,
-		})
+		input.TableName = &tableName
+		_, err := db.CreateTable(input)
 		require.NoError(t, err)
 	}
 
@@ -91,10 +77,35 @@ func TestDB_ListTables_Pagination(t *testing.T) {
 	allNames = append(allNames, result3.TableNames...)
 	// Dynamo doesn't guarantee the iteration order, so we don't impose that
 	// either.
-	compareStringPtr := func(a, b *string) int {
-		return cmp.Compare(*a, *b)
+	slices.SortFunc(allNames, comparePtr[string])
+	slices.SortFunc(expectedNames, comparePtr[string])
+	assert.Equal(t, expectedNames, allNames)
+}
+
+func TestDB_ListTablesPages(t *testing.T) {
+	t.Parallel()
+	db := fakedynamo.NewDB()
+	expectedNames := make([]*string, 250)
+	for i := range expectedNames {
+		input := exampleCreateTableInput()
+		tableName := fmt.Sprintf("table-%d", i)
+		expectedNames[i] = &tableName
+		input.TableName = &tableName
+		_, err := db.CreateTable(input)
+		require.NoError(t, err)
 	}
-	slices.SortFunc(allNames, compareStringPtr)
-	slices.SortFunc(expectedNames, compareStringPtr)
+
+	var allNames []*string
+	processPage := func(page *dynamodb.ListTablesOutput, lastPage bool) bool {
+		allNames = append(allNames, page.TableNames...)
+		return true
+	}
+	err := db.ListTablesPages(&dynamodb.ListTablesInput{}, processPage)
+	assert.NoError(t, err)
+
+	// Dynamo doesn't guarantee the iteration order, so we don't impose that
+	// either.
+	slices.SortFunc(allNames, comparePtr[string])
+	slices.SortFunc(expectedNames, comparePtr[string])
 	assert.Equal(t, expectedNames, allNames)
 }

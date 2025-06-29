@@ -169,6 +169,7 @@ func TestDB_CreateTable_ValidationErrors(t *testing.T) {
 }
 
 func TestDB_CreateTable_ErrorsWhenTableExists(t *testing.T) {
+	t.Parallel()
 	db := fakedynamo.NewDB()
 	input := dynamodb.CreateTableInput{
 		AttributeDefinitions: []*dynamodb.AttributeDefinition{{
@@ -191,9 +192,8 @@ func TestDB_CreateTable_ErrorsWhenTableExists(t *testing.T) {
 	assert.Nil(t, result)
 }
 
-func TestDB_CreateTable_HappyPath(t *testing.T) {
-	db := fakedynamo.NewDB()
-	input := dynamodb.CreateTableInput{
+func exampleCreateTableInput() *dynamodb.CreateTableInput {
+	return &dynamodb.CreateTableInput{
 		AttributeDefinitions: []*dynamodb.AttributeDefinition{
 			{
 				AttributeName: ptr("Foo"),
@@ -216,7 +216,13 @@ func TestDB_CreateTable_HappyPath(t *testing.T) {
 
 		TableName: aws.String("my-table"),
 	}
-	result, err := db.CreateTable(&input)
+}
+
+func TestDB_CreateTable_HappyPath(t *testing.T) {
+	t.Parallel()
+	db := fakedynamo.NewDB()
+	input := exampleCreateTableInput()
+	result, err := db.CreateTable(input)
 	assert.NoError(t, err)
 	require.NotNil(t, result)
 	require.NotNil(t, result.TableDescription)
