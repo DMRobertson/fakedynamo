@@ -7,10 +7,14 @@ import (
 )
 
 func (d *DB) CreateTable(input *dynamodb.CreateTableInput) (*dynamodb.CreateTableOutput, error) {
+	if input.AttributeDefinitions == nil {
+		return nil, newValidationException("AttributeDefinitions is a required field")
+	}
+
 	if input.TableName == nil {
-		return nil, newValidationException("table name is required")
+		return nil, newValidationException("TableName is a required field")
 	} else if len(*input.TableName) < 3 || len(*input.TableName) > 255 {
-		return nil, newValidationException("table name must be between 3 and 255 characters")
+		return nil, newValidationException("TableName must be between 3 and 255 characters")
 	}
 
 	if _, exists := d.tables[*input.TableName]; exists {

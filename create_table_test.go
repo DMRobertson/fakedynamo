@@ -23,7 +23,17 @@ func TestDB_CreateTable(t *testing.T) {
 	}
 	testCases := []testCase{
 		{
+			Name: "Returns ValidationException for missing AttributeDefinitions",
+			Assert: func(t *testing.T, result *dynamodb.CreateTableOutput, err error) {
+				assert.Error(t, err)
+				assert.Nil(t, result)
+			},
+		},
+		{
 			Name: "Returns ValidationException for missing table name",
+			Input: dynamodb.CreateTableInput{
+				AttributeDefinitions: []*dynamodb.AttributeDefinition{{}},
+			},
 			Assert: func(t *testing.T, result *dynamodb.CreateTableOutput, err error) {
 				assert.Error(t, err)
 				assert.Nil(t, result)
@@ -32,7 +42,8 @@ func TestDB_CreateTable(t *testing.T) {
 		{
 			Name: "Returns ValidationException for undersized table name",
 			Input: dynamodb.CreateTableInput{
-				TableName: aws.String("ab"),
+				AttributeDefinitions: []*dynamodb.AttributeDefinition{{}},
+				TableName:            aws.String("ab"),
 			},
 			Assert: func(t *testing.T, result *dynamodb.CreateTableOutput, err error) {
 				assert.Error(t, err)
@@ -42,7 +53,8 @@ func TestDB_CreateTable(t *testing.T) {
 		{
 			Name: "Returns ValidationException for oversized table name",
 			Input: dynamodb.CreateTableInput{
-				TableName: aws.String(threeHundredCharString),
+				AttributeDefinitions: []*dynamodb.AttributeDefinition{{}},
+				TableName:            aws.String(threeHundredCharString),
 			},
 			Assert: func(t *testing.T, result *dynamodb.CreateTableOutput, err error) {
 				assert.Error(t, err)
@@ -57,7 +69,8 @@ func TestDB_CreateTable(t *testing.T) {
 				require.NotNil(t, result)
 			},
 			Input: dynamodb.CreateTableInput{
-				TableName: aws.String("my-table"),
+				AttributeDefinitions: []*dynamodb.AttributeDefinition{{}},
+				TableName:            aws.String("my-table"),
 			},
 			Assert: func(t *testing.T, result *dynamodb.CreateTableOutput, err error) {
 				var expectedErr *dynamodb.ResourceInUseException
