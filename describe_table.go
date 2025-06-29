@@ -22,11 +22,11 @@ func (d *DB) DescribeTable(input *dynamodb.DescribeTableInput) (*dynamodb.Descri
 }
 
 func (d *DB) describeTable(tableName string) *dynamodb.TableDescription {
-	table, exists := d.tables[tableName]
+	table, exists := d.tables.Get(dummyTable(tableName))
 	if !exists {
 		return nil
 	}
-	spec := table.originalInput
+	spec := table.spec
 
 	return &dynamodb.TableDescription{
 		ArchivalSummary:           nil,
@@ -69,6 +69,6 @@ func (d *DB) DescribeTableWithContext(_ aws.Context, input *dynamodb.DescribeTab
 	return d.DescribeTable(input)
 }
 
-func (d *DB) DescribeTableRequest(input *dynamodb.DescribeTableInput) (*request.Request, *dynamodb.DescribeTableOutput) {
+func (d *DB) DescribeTableRequest(_ *dynamodb.DescribeTableInput) (*request.Request, *dynamodb.DescribeTableOutput) {
 	panic("not implemented: DescribeTableRequest")
 }

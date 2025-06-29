@@ -28,14 +28,14 @@ func (d *DB) CreateTable(input *dynamodb.CreateTableInput) (*dynamodb.CreateTabl
 		return nil, err
 	}
 
-	if _, exists := d.tables[*input.TableName]; exists {
+	if d.tables.Has(dummyTable(*input.TableName)) {
 		return nil, &dynamodb.ResourceInUseException{}
 	}
-	d.tables[*input.TableName] = table{
-		originalInput: input,
-		createdAt:     time.Now().UTC(),
-		schema:        *schema,
-	}
+	_, _ = d.tables.ReplaceOrInsert(table{
+		spec:      input,
+		createdAt: time.Now().UTC(),
+		schema:    *schema,
+	})
 	return &dynamodb.CreateTableOutput{
 		TableDescription: d.describeTable(*input.TableName),
 	}, nil

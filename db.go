@@ -18,25 +18,29 @@
 package fakedynamo
 
 import (
+	"cmp"
 	"time"
 
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/google/btree"
 )
 
 type DB struct {
-	tables map[string]table
+	tables *btree.BTreeG[table]
 }
 
 func NewDB() *DB {
 	return &DB{
-		tables: make(map[string]table),
+		tables: btree.NewG(2, func(a, b table) bool {
+			return cmp.Less(*a.spec.TableName, *b.spec.TableName)
+		}),
 	}
 }
 
 type table struct {
-	originalInput *dynamodb.CreateTableInput
-	schema        tableSchema
-	createdAt     time.Time
+	spec      *dynamodb.CreateTableInput
+	schema    tableSchema
+	createdAt time.Time
 }
 
 type tableSchema struct {
@@ -46,4 +50,10 @@ type tableSchema struct {
 	// others is a map from [dynamodb.AttributeDefinition.AttributeName]
 	// to [dynamodb.AttributeDefinition.AttributeType].
 	others map[string]string
+}
+
+func dummyTable(name string) table {
+	return table{spec: &dynamodb.CreateTableInput{
+		TableName: &name,
+	}}
 }

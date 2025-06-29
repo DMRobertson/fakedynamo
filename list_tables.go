@@ -6,7 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 )
 
-func (d *DB) ListTables(input *dynamodb.ListTablesInput) (*dynamodb.ListTablesOutput, error) {
+func (d *DB) ListTables(_ *dynamodb.ListTablesInput) (*dynamodb.ListTablesOutput, error) {
 	// TODO implement me
 	panic("implement me")
 }
@@ -15,7 +15,7 @@ func (d *DB) ListTablesWithContext(_ aws.Context, input *dynamodb.ListTablesInpu
 	return d.ListTables(input)
 }
 
-func (d *DB) ListTablesRequest(input *dynamodb.ListTablesInput) (*request.Request, *dynamodb.ListTablesOutput) {
+func (d *DB) ListTablesRequest(_ *dynamodb.ListTablesInput) (*request.Request, *dynamodb.ListTablesOutput) {
 	panic("not implemented: ListTablesRequest")
 }
 
