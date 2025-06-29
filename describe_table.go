@@ -9,8 +9,16 @@ import (
 )
 
 func (d *DB) DescribeTable(input *dynamodb.DescribeTableInput) (*dynamodb.DescribeTableOutput, error) {
-	// TODO implement me
-	panic("implement me")
+	if input.TableName == nil {
+		return nil, newValidationError("TableName is a required field")
+	}
+	desc := d.describeTable(*input.TableName)
+	if desc == nil {
+		return nil, &dynamodb.ResourceNotFoundException{}
+	}
+	return &dynamodb.DescribeTableOutput{
+		Table: desc,
+	}, nil
 }
 
 func (d *DB) describeTable(tableName string) *dynamodb.TableDescription {

@@ -1,0 +1,56 @@
+package fakedynamo_test
+
+import (
+	"testing"
+
+	"github.com/DMRobertson/fakedynamo"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func TestDB_DescribeTable_ReturnsErrorForMissingTable(t *testing.T) {
+	db := fakedynamo.NewDB()
+	result, err := db.DescribeTable(&dynamodb.DescribeTableInput{TableName: ptr("my-table")})
+	var expectedErr *dynamodb.ResourceNotFoundException
+	assert.ErrorAs(t, err, &expectedErr)
+	assert.Nil(t, result)
+
+}
+func TestDB_DescribeTable_HappyPath(t *testing.T) {
+	db := fakedynamo.NewDB()
+	createInput := dynamodb.CreateTableInput{
+		AttributeDefinitions: []*dynamodb.AttributeDefinition{
+			{
+				AttributeName: ptr("Foo"),
+				AttributeType: ptr("S"),
+			},
+			{
+				AttributeName: ptr("Bar"),
+				AttributeType: ptr("S"),
+			},
+		},
+		KeySchema: []*dynamodb.KeySchemaElement{
+			{
+				AttributeName: ptr("Foo"),
+				KeyType:       ptr(dynamodb.KeyTypeHash),
+			}, {
+				AttributeName: ptr("Bar"),
+				KeyType:       ptr(dynamodb.KeyTypeRange),
+			},
+		},
+
+		TableName: aws.String("my-table"),
+	}
+	_, err := db.CreateTable(&createInput)
+	require.NoError(t, err)
+
+	result, err := db.DescribeTable(&dynamodb.DescribeTableInput{TableName: createInput.TableName})
+	assert.NoError(t, err)
+	require.NotNil(t, result)
+
+	assert.Equal(t, createInput.TableName, result.Table.TableName)
+	assert.Equal(t, createInput.KeySchema, result.Table.KeySchema)
+	assert.Equal(t, createInput.AttributeDefinitions, result.Table.AttributeDefinitions)
+}

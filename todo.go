@@ -556,31 +556,6 @@ func (d *DB) ListImportsPagesWithContext(context aws.Context, input *dynamodb.Li
 	panic("implement me")
 }
 
-func (d *DB) ListTables(input *dynamodb.ListTablesInput) (*dynamodb.ListTablesOutput, error) {
-	// TODO implement me
-	panic("implement me")
-}
-
-func (d *DB) ListTablesWithContext(context aws.Context, input *dynamodb.ListTablesInput, option ...request.Option) (*dynamodb.ListTablesOutput, error) {
-	// TODO implement me
-	panic("implement me")
-}
-
-func (d *DB) ListTablesRequest(input *dynamodb.ListTablesInput) (*request.Request, *dynamodb.ListTablesOutput) {
-	// TODO implement me
-	panic("implement me")
-}
-
-func (d *DB) ListTablesPages(input *dynamodb.ListTablesInput, f func(*dynamodb.ListTablesOutput, bool) bool) error {
-	// TODO implement me
-	panic("implement me")
-}
-
-func (d *DB) ListTablesPagesWithContext(context aws.Context, input *dynamodb.ListTablesInput, f func(*dynamodb.ListTablesOutput, bool) bool, option ...request.Option) error {
-	// TODO implement me
-	panic("implement me")
-}
-
 func (d *DB) ListTagsOfResource(input *dynamodb.ListTagsOfResourceInput) (*dynamodb.ListTagsOfResourceOutput, error) {
 	// TODO implement me
 	panic("implement me")
