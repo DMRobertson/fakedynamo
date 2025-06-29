@@ -23,21 +23,31 @@ func (d *DB) PutItem(input *dynamodb.PutItemInput) (*dynamodb.PutItemOutput, err
 		errs = append(errs, &dynamodb.ResourceNotFoundException{})
 	}
 
-	// Check item has the requisite primary key
+	errs = append(errs, d.validateItemMatchesSchema(input.Item, t))
+	if err := errors.Join(errs...); err != nil {
+		return nil, err
+	}
+
+	return nil, nil
+}
+
+func (d *DB) validateItemMatchesSchema(item avmap, t table) error {
+	var errs []error
+
 	partitionName := t.schema.partition
-	_, exists = input.Item[partitionName]
+	_, exists := item[partitionName]
 	if !exists {
 		errs = append(errs, newValidationErrorf("Item does not define partition key %s", partitionName))
 	}
 	if sortName := t.schema.sort; sortName != "" {
-		_, exists = input.Item[sortName]
+		_, exists = item[sortName]
 		if !exists {
 			errs = append(errs, newValidationErrorf("Item does not define sort key %s", sortName))
 		}
 	}
 
 	for attrName, definedType := range t.schema.types {
-		if attrVal := input.Item[attrName]; attrVal != nil {
+		if attrVal := item[attrName]; attrVal != nil {
 			switch definedType {
 			case dynamodb.ScalarAttributeTypeS:
 				if attrVal.S == nil {
@@ -60,12 +70,7 @@ func (d *DB) PutItem(input *dynamodb.PutItemInput) (*dynamodb.PutItemOutput, err
 			}
 		}
 	}
-
-	if err := errors.Join(errs...); err != nil {
-		return nil, err
-	}
-	// TODO: ConditionalCheckFailedException
-	return nil, nil
+	return errors.Join(errs...)
 }
 
 func validatePutItemInputItem(item avmap) error {
