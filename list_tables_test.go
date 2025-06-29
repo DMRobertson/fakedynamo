@@ -27,7 +27,7 @@ func TestDB_ListTables_DefaultLimitSize(t *testing.T) {
 	t.Parallel()
 	db := fakedynamo.NewDB()
 	for i := range 200 {
-		input := exampleCreateTableInput()
+		input := exampleCreateTableInputCompositePrimaryKey()
 		input.TableName = ptr(fmt.Sprintf("table-%d", i))
 		_, err := db.CreateTable(input)
 		require.NoError(t, err)
@@ -43,7 +43,7 @@ func TestDB_ListTables_Pagination(t *testing.T) {
 	db := fakedynamo.NewDB()
 	expectedNames := make([]*string, 250)
 	for i := range expectedNames {
-		input := exampleCreateTableInput()
+		input := exampleCreateTableInputCompositePrimaryKey()
 		tableName := fmt.Sprintf("table-%d", i)
 		expectedNames[i] = &tableName
 		input.TableName = &tableName
@@ -87,7 +87,7 @@ func TestDB_ListTablesPages(t *testing.T) {
 	db := fakedynamo.NewDB()
 	expectedNames := make([]*string, 250)
 	for i := range expectedNames {
-		input := exampleCreateTableInput()
+		input := exampleCreateTableInputCompositePrimaryKey()
 		tableName := fmt.Sprintf("table-%d", i)
 		expectedNames[i] = &tableName
 		input.TableName = &tableName

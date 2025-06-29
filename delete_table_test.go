@@ -13,17 +13,26 @@ func TestDB_DeleteTable_ErrorsIfNoTableNameGiven(t *testing.T) {
 	t.Parallel()
 	db := fakedynamo.NewDB()
 	result, err := db.DeleteTable(&dynamodb.DeleteTableInput{})
+	assert.ErrorContains(t, err, "TableName is a required field")
+	assert.Nil(t, result)
+}
+
+func TestDB_DeleteTable_ErrorsIfTableMissing(t *testing.T) {
+	t.Parallel()
+	db := fakedynamo.NewDB()
+	result, err := db.DeleteTable(&dynamodb.DeleteTableInput{
+		TableName: ptr("my-table"),
+	})
 	var expectedErr *dynamodb.ResourceNotFoundException
 	assert.ErrorAs(t, err, &expectedErr)
 	assert.Nil(t, result)
-
 }
 
 func TestDB_DeleteTable_HappyPath(t *testing.T) {
 	t.Parallel()
 
 	db := fakedynamo.NewDB()
-	input := exampleCreateTableInput()
+	input := exampleCreateTableInputCompositePrimaryKey()
 	_, err := db.CreateTable(input)
 	require.NoError(t, err)
 

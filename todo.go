@@ -556,21 +556,6 @@ func (d *DB) ListTagsOfResourceRequest(input *dynamodb.ListTagsOfResourceInput) 
 	panic("implement me")
 }
 
-func (d *DB) PutItem(input *dynamodb.PutItemInput) (*dynamodb.PutItemOutput, error) {
-	// TODO implement me
-	panic("implement me")
-}
-
-func (d *DB) PutItemWithContext(context aws.Context, input *dynamodb.PutItemInput, option ...request.Option) (*dynamodb.PutItemOutput, error) {
-	// TODO implement me
-	panic("implement me")
-}
-
-func (d *DB) PutItemRequest(input *dynamodb.PutItemInput) (*request.Request, *dynamodb.PutItemOutput) {
-	// TODO implement me
-	panic("implement me")
-}
-
 func (d *DB) PutResourcePolicy(input *dynamodb.PutResourcePolicyInput) (*dynamodb.PutResourcePolicyOutput, error) {
 	// TODO implement me
 	panic("implement me")

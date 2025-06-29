@@ -21,7 +21,7 @@ func TestDB_DescribeTable_ReturnsErrorForMissingTable(t *testing.T) {
 func TestDB_DescribeTable_HappyPath(t *testing.T) {
 	t.Parallel()
 	db := fakedynamo.NewDB()
-	createInput := exampleCreateTableInput()
+	createInput := exampleCreateTableInputCompositePrimaryKey()
 	_, err := db.CreateTable(createInput)
 	require.NoError(t, err)
 

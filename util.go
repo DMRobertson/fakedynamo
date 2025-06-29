@@ -17,6 +17,13 @@ func val[T any](p *T) T {
 	return zeroValue
 }
 
+func toInt(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
+}
+
 func noErrors(errs []error) bool {
 	for _, err := range errs {
 		if err != nil {

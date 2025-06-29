@@ -45,9 +45,9 @@ type tableSchema struct {
 	partition string
 	sort      string
 
-	// others is a map from [dynamodb.AttributeDefinition.AttributeName]
+	// types is a map from [dynamodb.AttributeDefinition.AttributeName]
 	// to [dynamodb.AttributeDefinition.AttributeType].
-	others map[string]string
+	types map[string]string
 }
 
 func tableKey(name string) table {
@@ -59,3 +59,17 @@ func tableKey(name string) table {
 func tableLess(a, b table) bool {
 	return cmp.Less(*a.spec.TableName, *b.spec.TableName)
 }
+
+type partition struct {
+	key string
+}
+
+func partitionKey(key string) partition {
+	return partition{key: key}
+}
+
+func partitionLess(a, b partition) bool {
+	return cmp.Less(a.key, b.key)
+}
+
+type avmap = map[string]*dynamodb.AttributeValue

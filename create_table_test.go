@@ -18,7 +18,6 @@ func TestDB_CreateTable_ValidationErrors(t *testing.T) {
 
 	type testCase struct {
 		Name  string
-		Setup func(t *testing.T, db *fakedynamo.DB, tc *testCase)
 		Input dynamodb.CreateTableInput
 
 		ExpectErrorMessage string
@@ -157,9 +156,6 @@ func TestDB_CreateTable_ValidationErrors(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
 			db := fakedynamo.NewDB()
-			if tc.Setup != nil {
-				tc.Setup(t, db, &tc)
-			}
 			result, err := db.CreateTable(&tc.Input)
 
 			assert.ErrorContains(t, err, tc.ExpectErrorMessage)
@@ -192,7 +188,26 @@ func TestDB_CreateTable_ErrorsWhenTableExists(t *testing.T) {
 	assert.Nil(t, result)
 }
 
-func exampleCreateTableInput() *dynamodb.CreateTableInput {
+func exampleCreateTableInputSimplePrimaryKey() *dynamodb.CreateTableInput {
+	return &dynamodb.CreateTableInput{
+		AttributeDefinitions: []*dynamodb.AttributeDefinition{
+			{
+				AttributeName: ptr("Foo"),
+				AttributeType: ptr("S"),
+			},
+		},
+		KeySchema: []*dynamodb.KeySchemaElement{
+			{
+				AttributeName: ptr("Foo"),
+				KeyType:       ptr(dynamodb.KeyTypeHash),
+			},
+		},
+
+		TableName: aws.String("my-table"),
+	}
+}
+
+func exampleCreateTableInputCompositePrimaryKey() *dynamodb.CreateTableInput {
 	return &dynamodb.CreateTableInput{
 		AttributeDefinitions: []*dynamodb.AttributeDefinition{
 			{
@@ -221,7 +236,7 @@ func exampleCreateTableInput() *dynamodb.CreateTableInput {
 func TestDB_CreateTable_HappyPath(t *testing.T) {
 	t.Parallel()
 	db := fakedynamo.NewDB()
-	input := exampleCreateTableInput()
+	input := exampleCreateTableInputCompositePrimaryKey()
 	result, err := db.CreateTable(input)
 	assert.NoError(t, err)
 	require.NotNil(t, result)

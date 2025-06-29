@@ -150,7 +150,7 @@ func parseTableSchema(input *dynamodb.CreateTableInput) (*tableSchema, error) {
 	schema := tableSchema{
 		partition: partitionAttrName,
 		sort:      sortAttrName,
-		others:    attrTypes,
+		types:     attrTypes,
 	}
 
 	return &schema, nil
