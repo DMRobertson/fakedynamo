@@ -13,7 +13,7 @@ import (
 func TestDB_CreateTable_ValidationErrors(t *testing.T) {
 	t.Parallel()
 
-	threeHundredCharString := string(make([]byte, 300))
+	twoKbString := string(make([]byte, 2048))
 
 	type testCase struct {
 		Name  string
@@ -55,7 +55,7 @@ func TestDB_CreateTable_ValidationErrors(t *testing.T) {
 			Name: "Returns ValidationException for oversized AttributeName",
 			Input: dynamodb.CreateTableInput{
 				AttributeDefinitions: []*dynamodb.AttributeDefinition{{
-					AttributeName: &threeHundredCharString,
+					AttributeName: &twoKbString,
 				}},
 			},
 			ExpectErrorMessage: "AttributeDefinitions[0].AttributeName must be between 1 and 255 characters",
@@ -110,16 +110,30 @@ func TestDB_CreateTable_ValidationErrors(t *testing.T) {
 		{
 			Name: "Returns ValidationException for undersized table name",
 			Input: dynamodb.CreateTableInput{
-				TableName: aws.String("ab"),
+				TableName: aws.String(""),
 			},
-			ExpectErrorMessage: "TableName must be between 3 and 255 characters",
+			ExpectErrorMessage: "TableName must be between 1 and 1024 characters",
 		},
 		{
 			Name: "Returns ValidationException for oversized table name",
 			Input: dynamodb.CreateTableInput{
-				TableName: &threeHundredCharString,
+				TableName: &twoKbString,
 			},
-			ExpectErrorMessage: "TableName must be between 3 and 255 characters",
+			ExpectErrorMessage: "TableName must be between 1 and 1024 characters",
+		},
+		{
+			Name: "Returns ValidationException when partition key's attribute is not defined",
+			Input: dynamodb.CreateTableInput{
+				AttributeDefinitions: []*dynamodb.AttributeDefinition{{
+					AttributeName: ptr("Foo"),
+					AttributeType: ptr("S"),
+				}},
+				KeySchema: []*dynamodb.KeySchemaElement{{
+					AttributeName: ptr("Bar"),
+					KeyType:       ptr(dynamodb.KeyTypeHash),
+				}},
+			},
+			ExpectErrorMessage: "Bar is missing from AttributeDefinitions",
 		},
 	}
 	for _, tc := range testCases {

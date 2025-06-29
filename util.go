@@ -17,6 +17,15 @@ func val[T any](p *T) T {
 	return zeroValue
 }
 
+func noErrors(errs []error) bool {
+	for _, err := range errs {
+		if err != nil {
+			return false
+		}
+	}
+	return true
+}
+
 type dummyAwsError struct {
 	// awserror.Error
 	code    string

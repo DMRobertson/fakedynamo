@@ -10,17 +10,20 @@ import (
 )
 
 func (d *DB) CreateTable(input *dynamodb.CreateTableInput) (*dynamodb.CreateTableOutput, error) {
-	err := errors.Join(
+	errs := []error{
 		validateCreateTableInputAttributeDefinitions(input.AttributeDefinitions),
 		validateCreateTableInputKeySchema(input.KeySchema),
-		validateCreateTableInputTableName(input.TableName),
-	)
-	if err != nil {
-		return nil, err
 	}
 
-	schema, err := validateTableSchema(input)
-	if err != nil {
+	var schema *tableSchema
+	if noErrors(errs) {
+		var err error
+		schema, err = parseTableSchema(input)
+		errs = append(errs, err)
+	}
+
+	errs = append(errs, validateCreateTableInputTableName(input.TableName))
+	if err := errors.Join(errs...); err != nil {
 		return nil, err
 	}
 
@@ -106,17 +109,44 @@ func validateCreateTableInputKeySchema(input []*dynamodb.KeySchemaElement) error
 func validateCreateTableInputTableName(input *string) error {
 	if input == nil {
 		return newValidationError("TableName is a required field")
-	} else if len(*input) < 3 || len(*input) > 255 {
-		return newValidationError("TableName must be between 3 and 255 characters")
+	} else if len(*input) < 1 || len(*input) > 1024 {
+		return newValidationError("TableName must be between 1 and 1024 characters")
 	}
 	return nil
 }
 
-func validateTableSchema(input *dynamodb.CreateTableInput) (*attrSchema, error) {
+func parseTableSchema(input *dynamodb.CreateTableInput) (*tableSchema, error) {
+	attrTypes := make(map[string]string)
 
-	// TODO: check that keyschema is defined in attr definitions
-	schema := attrSchema{
-		others: make(map[string]string, len(input.AttributeDefinitions)),
+	for _, attr := range input.AttributeDefinitions {
+		attrTypes[*attr.AttributeName] = *attr.AttributeType
+	}
+
+	var errs []error
+
+	partitionAttrName := *input.KeySchema[0].AttributeName
+	_, exists := attrTypes[partitionAttrName]
+	if !exists {
+		errs = append(errs, newValidationErrorf("%s is missing from AttributeDefinitions", partitionAttrName))
+	}
+
+	var sortAttrName string
+	if len(input.KeySchema) > 1 {
+		sortAttrName := *input.KeySchema[1].AttributeName
+		_, exists := attrTypes[sortAttrName]
+		if !exists {
+			errs = append(errs, newValidationErrorf("%s is missing from AttributeDefinitions", sortAttrName))
+		}
+	}
+
+	if err := errors.Join(errs...); err != nil {
+		return nil, err
+	}
+
+	schema := tableSchema{
+		partition: partitionAttrName,
+		sort:      sortAttrName,
+		others:    attrTypes,
 	}
 
 	return &schema, nil
