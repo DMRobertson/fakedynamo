@@ -23,6 +23,7 @@ func Test_PutItem_ValidationErrors(t *testing.T) {
 
 	hugeKey := string(make([]byte, 65536))
 	exampleSimpleTableSpec := exampleCreateTableInputSimplePrimaryKey()
+	exampleCompositeTableSpec := exampleCreateTableInputCompositePrimaryKey()
 
 	testCases := []testCase{
 		{
@@ -83,8 +84,22 @@ func Test_PutItem_ValidationErrors(t *testing.T) {
 				Item:      map[string]*dynamodb.AttributeValue{},
 				TableName: exampleSimpleTableSpec.TableName,
 			},
-			ExpectErrorMessage: "Item is missing partition key Foo",
+			ExpectErrorMessage: "Item does not define partition key Foo",
 		},
+		{
+			Name: "Returns ValidationException when sort key is missing",
+			Setup: func(t *testing.T, db *fakedynamo.DB, tc *testCase) {
+				_, err := db.CreateTable(exampleCompositeTableSpec)
+				require.NoError(t, err)
+			},
+			Input: dynamodb.PutItemInput{
+				Item:      map[string]*dynamodb.AttributeValue{},
+				TableName: exampleCompositeTableSpec.TableName,
+			},
+			ExpectErrorMessage: "Item does not define sort key Bar",
+		},
+
+		// TODO: Returns ValidationException when sort key is missing
 	}
 
 	for _, tc := range testCases {

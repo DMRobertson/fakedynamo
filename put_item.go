@@ -14,21 +14,51 @@ func (d *DB) PutItem(input *dynamodb.PutItemInput) (*dynamodb.PutItemOutput, err
 		errs = append(errs, err)
 	}
 
-	var _ table
+	var t table
 	var exists bool
 	if input.TableName == nil {
 		errs = append(errs, newValidationError("TableName is a required field"))
-	} else if _, exists = d.tables.Get(tableKey(*input.TableName)); !exists {
+		return nil, errors.Join(errs...)
+	} else if t, exists = d.tables.Get(tableKey(*input.TableName)); !exists {
 		errs = append(errs, &dynamodb.ResourceNotFoundException{})
+	}
+
+	// Check item has the requisite primary key
+	partitionName := t.schema.partition
+	_, exists = input.Item[partitionName]
+	if !exists {
+		errs = append(errs, newValidationErrorf("Item does not define partition key %s", partitionName))
+	}
+	if sortName := t.schema.sort; sortName != "" {
+		_, exists = input.Item[sortName]
+		if !exists {
+			errs = append(errs, newValidationErrorf("Item does not define sort key %s", sortName))
+		}
+	}
+
+	for attrName, definedType := range t.schema.types {
+		if attrVal := input.Item[attrName]; attrVal != nil {
+			switch definedType {
+			case dynamodb.ScalarAttributeTypeS:
+				if attrVal.S == nil {
+					errs = append(errs, newValidationErrorf("Item.%s is defined to have type S", attrName))
+				}
+			case dynamodb.ScalarAttributeTypeB:
+				if attrVal.B == nil {
+					errs = append(errs, newValidationErrorf("Item.%s is defined to have type B", attrName))
+				}
+			case dynamodb.ScalarAttributeTypeN:
+				if attrVal.N == nil {
+					errs = append(errs, newValidationErrorf("Item.%s is defined to have type N", attrName))
+				}
+			}
+		}
 	}
 
 	if err := errors.Join(errs...); err != nil {
 		return nil, err
 	}
-
-	// partitionValue := val(input.Item[t.schema.partition])
 	// TODO: ConditionalCheckFailedException
-
 	return nil, nil
 }
 

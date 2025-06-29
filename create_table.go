@@ -136,7 +136,7 @@ func parseTableSchema(input *dynamodb.CreateTableInput) (*tableSchema, error) {
 
 	var sortAttrName string
 	if len(input.KeySchema) > 1 {
-		sortAttrName := *input.KeySchema[1].AttributeName
+		sortAttrName = *input.KeySchema[1].AttributeName
 		_, exists := attrTypes[sortAttrName]
 		if !exists {
 			errs = append(errs, newValidationErrorf("%s is missing from AttributeDefinitions", sortAttrName))
