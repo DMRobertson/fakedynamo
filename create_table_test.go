@@ -10,90 +10,116 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestDB_CreateTable(t *testing.T) {
+func TestDB_CreateTable_ValidationErrors(t *testing.T) {
 	t.Parallel()
 
 	threeHundredCharString := string(make([]byte, 300))
 
 	type testCase struct {
-		Name   string
-		Setup  func(t *testing.T, db *fakedynamo.DB, tc *testCase)
-		Input  dynamodb.CreateTableInput
-		Assert func(t *testing.T, result *dynamodb.CreateTableOutput, err error)
+		Name  string
+		Setup func(t *testing.T, db *fakedynamo.DB, tc *testCase)
+		Input dynamodb.CreateTableInput
+
+		ExpectErrorMessage string
 	}
-	expectValidationError := expectValidationError[*dynamodb.CreateTableOutput]
 
 	testCases := []testCase{
 		{
-			Name:   "Returns ValidationException for missing AttributeDefinitions",
-			Assert: expectValidationError,
+			Name:               "Returns ValidationException for missing AttributeDefinitions",
+			ExpectErrorMessage: "AttributeDefinitions is a required field",
 		},
 		{
-			Name: "Returns ValidationException for missing KeySchema",
+			Name: "Returns ValidationException for nil AttributeDefinition",
+			Input: dynamodb.CreateTableInput{
+				AttributeDefinitions: []*dynamodb.AttributeDefinition{nil},
+			},
+			ExpectErrorMessage: "AttributeDefinitions[0] is nil",
+		},
+		{
+			Name: "Returns ValidationException for AttributeDefinition without AttributeName",
 			Input: dynamodb.CreateTableInput{
 				AttributeDefinitions: []*dynamodb.AttributeDefinition{{}},
 			},
-			Assert: expectValidationError,
+			ExpectErrorMessage: "AttributeDefinitions[0].AttributeName is a required field",
+		},
+		{
+			Name: "Returns ValidationException for undersized AttributeName",
+			Input: dynamodb.CreateTableInput{
+				AttributeDefinitions: []*dynamodb.AttributeDefinition{{
+					AttributeName: ptr(""),
+				}},
+			},
+			ExpectErrorMessage: "AttributeDefinitions[0].AttributeName must be between 1 and 255 characters",
+		},
+		{
+			Name: "Returns ValidationException for oversized AttributeName",
+			Input: dynamodb.CreateTableInput{
+				AttributeDefinitions: []*dynamodb.AttributeDefinition{{
+					AttributeName: &threeHundredCharString,
+				}},
+			},
+			ExpectErrorMessage: "AttributeDefinitions[0].AttributeName must be between 1 and 255 characters",
+		},
+		{
+			Name: "Returns ValidationException for missing AttributeType",
+			Input: dynamodb.CreateTableInput{
+				AttributeDefinitions: []*dynamodb.AttributeDefinition{{}},
+			},
+			ExpectErrorMessage: "AttributeDefinitions[0].AttributeType is a required field",
+		},
+		{
+			Name: "Returns ValidationException for invalid AttributeType",
+			Input: dynamodb.CreateTableInput{
+				AttributeDefinitions: []*dynamodb.AttributeDefinition{{
+					AttributeType: ptr("D"),
+				}},
+			},
+			ExpectErrorMessage: "AttributeDefinitions[0].AttributeType must be one of [S N B]",
+		},
+		{
+			Name:               "Returns ValidationException for missing KeySchema",
+			Input:              dynamodb.CreateTableInput{},
+			ExpectErrorMessage: "KeySchema is a required field",
 		},
 		{
 			Name: "Returns ValidationException for undersized KeySchema",
 			Input: dynamodb.CreateTableInput{
-				AttributeDefinitions: []*dynamodb.AttributeDefinition{{}},
-				KeySchema:            []*dynamodb.KeySchemaElement{},
+				KeySchema: []*dynamodb.KeySchemaElement{},
 			},
-			Assert: expectValidationError,
+			ExpectErrorMessage: "KeySchema must contain 1 or 2 items",
 		},
 		{
 			Name: "Returns ValidationException for oversized KeySchema",
 			Input: dynamodb.CreateTableInput{
-				AttributeDefinitions: []*dynamodb.AttributeDefinition{{}},
-				KeySchema:            []*dynamodb.KeySchemaElement{{}, {}, {}},
+				KeySchema: []*dynamodb.KeySchemaElement{{}, {}, {}},
 			},
-			Assert: expectValidationError,
+			ExpectErrorMessage: "KeySchema must contain 1 or 2 items",
 		},
 		{
-			Name: "Returns ValidationException for missing table name",
+			Name: "Returns ValidationException for nil KeySchema entry",
 			Input: dynamodb.CreateTableInput{
-				AttributeDefinitions: []*dynamodb.AttributeDefinition{{}},
-				KeySchema:            []*dynamodb.KeySchemaElement{{}},
+				KeySchema: []*dynamodb.KeySchemaElement{nil, {}},
 			},
-			Assert: expectValidationError,
+			ExpectErrorMessage: "KeySchema[0] is nil",
+		},
+		{
+			Name:               "Returns ValidationException for missing table name",
+			Input:              dynamodb.CreateTableInput{},
+			ExpectErrorMessage: "TableName is a required field",
 		},
 		{
 			Name: "Returns ValidationException for undersized table name",
 			Input: dynamodb.CreateTableInput{
-				AttributeDefinitions: []*dynamodb.AttributeDefinition{{}},
-				KeySchema:            []*dynamodb.KeySchemaElement{{}},
-				TableName:            aws.String("ab"),
+				TableName: aws.String("ab"),
 			},
-			Assert: expectValidationError,
+			ExpectErrorMessage: "TableName must be between 3 and 255 characters",
 		},
 		{
 			Name: "Returns ValidationException for oversized table name",
 			Input: dynamodb.CreateTableInput{
-				AttributeDefinitions: []*dynamodb.AttributeDefinition{{}},
-				KeySchema:            []*dynamodb.KeySchemaElement{{}},
-				TableName:            aws.String(threeHundredCharString),
+				TableName: &threeHundredCharString,
 			},
-			Assert: expectValidationError,
-		},
-		{
-			Name: "Returns ResourceInUseException when table already exists",
-			Setup: func(t *testing.T, db *fakedynamo.DB, tc *testCase) {
-				result, err := db.CreateTable(&tc.Input)
-				require.NoError(t, err)
-				require.NotNil(t, result)
-			},
-			Input: dynamodb.CreateTableInput{
-				AttributeDefinitions: []*dynamodb.AttributeDefinition{{}},
-				KeySchema:            []*dynamodb.KeySchemaElement{{}},
-				TableName:            aws.String("my-table"),
-			},
-			Assert: func(t *testing.T, result *dynamodb.CreateTableOutput, err error) {
-				var expectedErr *dynamodb.ResourceInUseException
-				assert.ErrorAs(t, err, &expectedErr)
-				assert.Nil(t, result)
-			},
+			ExpectErrorMessage: "TableName must be between 3 and 255 characters",
 		},
 	}
 	for _, tc := range testCases {
@@ -103,12 +129,32 @@ func TestDB_CreateTable(t *testing.T) {
 				tc.Setup(t, db, &tc)
 			}
 			result, err := db.CreateTable(&tc.Input)
-			tc.Assert(t, result, err)
+
+			assert.ErrorContains(t, err, tc.ExpectErrorMessage)
+			assert.Nil(t, result)
 		})
 	}
 }
 
-func expectValidationError[R any](t *testing.T, result R, err error) {
-	assert.ErrorContains(t, err, "ValidationException")
+func TestDB_CreateTable_ErrorsWhenTableExists(t *testing.T) {
+	db := fakedynamo.NewDB()
+	input := dynamodb.CreateTableInput{
+		AttributeDefinitions: []*dynamodb.AttributeDefinition{{
+			AttributeName: ptr("Foo"),
+			AttributeType: ptr("S"),
+		}},
+		KeySchema: []*dynamodb.KeySchemaElement{{
+			AttributeName: ptr("Foo"),
+			KeyType:       ptr(dynamodb.KeyTypeHash),
+		}},
+		TableName: aws.String("my-table"),
+	}
+	result, err := db.CreateTable(&input)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+
+	result, err = db.CreateTable(&input)
+	var expectedErr *dynamodb.ResourceInUseException
+	assert.ErrorAs(t, err, &expectedErr)
 	assert.Nil(t, result)
 }

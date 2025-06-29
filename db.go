@@ -17,6 +17,8 @@
 // [LocalStack's implementation]: https://docs.localstack.cloud/user-guide/aws/dynamodb/
 package fakedynamo
 
+import "github.com/aws/aws-sdk-go/service/dynamodb"
+
 type DB struct {
 	tables map[string]table
 }
@@ -27,4 +29,15 @@ func NewDB() *DB {
 	}
 }
 
-type table struct{}
+type table struct {
+	schema attrSchema
+}
+
+type attrSchema struct {
+	partition dynamodb.AttributeDefinition
+	sort      *dynamodb.AttributeDefinition
+
+	// others is a map from [dynamodb.AttributeDefinition.AttributeName]
+	// to [dynamodb.AttributeDefinition.AttributeType].
+	others map[string]string
+}

@@ -10,7 +10,11 @@ func ptr[T any](v T) *T {
 }
 
 func val[T any](p *T) T {
-	return *p
+	var zeroValue T
+	if p != nil {
+		return *p
+	}
+	return zeroValue
 }
 
 type dummyAwsError struct {
@@ -43,10 +47,14 @@ func (d dummyAwsError) RequestID() string {
 
 // The DynamoDB service doesn't explicitly define a ValidationException error, so it doesn't show up in the
 // https://github.com/aws/aws-sdk/issues/47 and https://github.com/aws/aws-sdk-go-v2/issues/3040
-func newValidationException(message string) error {
+func newValidationError(message string) error {
 	return dummyAwsError{
 		code:           "ValidationException",
 		message:        message,
 		httpStatusCode: http.StatusBadRequest,
 	}
+}
+
+func newValidationErrorf(format string, args ...any) error {
+	return newValidationError(fmt.Sprintf(format, args...))
 }

@@ -1,41 +1,125 @@
 package fakedynamo
 
 import (
+	"errors"
+	"slices"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 )
 
 func (d *DB) CreateTable(input *dynamodb.CreateTableInput) (*dynamodb.CreateTableOutput, error) {
-	if err := validateTableSchema(input); err != nil {
+	err := errors.Join(
+		validateCreateTableInputAttributeDefinitions(input.AttributeDefinitions),
+		validateCreateTableInputKeySchema(input.KeySchema),
+		validateCreateTableInputTableName(input.TableName),
+	)
+	if err != nil {
 		return nil, err
 	}
 
-	if input.TableName == nil {
-		return nil, newValidationException("TableName is a required field")
-	} else if len(*input.TableName) < 3 || len(*input.TableName) > 255 {
-		return nil, newValidationException("TableName must be between 3 and 255 characters")
+	schema, err := validateTableSchema(input)
+	if err != nil {
+		return nil, err
 	}
 
 	if _, exists := d.tables[*input.TableName]; exists {
 		return nil, &dynamodb.ResourceInUseException{}
 	}
-	d.tables[*input.TableName] = table{}
+	d.tables[*input.TableName] = table{
+		schema: *schema,
+	}
 
 	return &dynamodb.CreateTableOutput{}, nil
 }
 
-func validateTableSchema(input *dynamodb.CreateTableInput) error {
-	if input.AttributeDefinitions == nil {
-		return newValidationException("AttributeDefinitions is a required field")
+var validAttributeTypes = []string{
+	dynamodb.ScalarAttributeTypeS,
+	dynamodb.ScalarAttributeTypeN,
+	dynamodb.ScalarAttributeTypeB,
+}
+
+func validateCreateTableInputAttributeDefinitions(input []*dynamodb.AttributeDefinition) error {
+	if input == nil {
+		return newValidationError("AttributeDefinitions is a required field")
 	}
 
-	if input.KeySchema == nil {
-		return newValidationException("KeySchema is a required field")
-	} else if len(input.KeySchema) != 1 && len(input.KeySchema) != 2 {
-		return newValidationException("KeySchema must contain 1 or 2 items")
+	var errs []error
+	for i, attr := range input {
+		if attr == nil {
+			errs = append(errs, newValidationErrorf("AttributeDefinitions[%d] is nil", i))
+			continue
+		}
+
+		if attr.AttributeName == nil {
+			errs = append(errs, newValidationErrorf("AttributeDefinitions[%d].AttributeName is a required field", i))
+		} else if len(*attr.AttributeName) < 1 || len(*attr.AttributeName) > 255 {
+			errs = append(errs, newValidationErrorf("AttributeDefinitions[%d].AttributeName must be between 1 and 255 characters", i))
+		}
+
+		if attr.AttributeType == nil {
+			errs = append(errs, newValidationErrorf("AttributeDefinitions[%d].AttributeType is a required field", i))
+		} else if !slices.Contains(validAttributeTypes, *attr.AttributeType) {
+			errs = append(errs, newValidationErrorf(`AttributeDefinitions[%d].AttributeType must be one of %v`, i, validAttributeTypes))
+		}
+	}
+	return errors.Join(errs...)
+}
+
+func validateCreateTableInputKeySchema(input []*dynamodb.KeySchemaElement) error {
+	if input == nil {
+		return newValidationError("KeySchema is a required field")
+	} else if len(input) == 0 || len(input) > 2 {
+		return newValidationError("KeySchema must contain 1 or 2 items")
+	}
+
+	var errs []error
+
+	if input[0] == nil {
+		errs = append(errs, newValidationErrorf("KeySchema[0] is nil"))
+	} else {
+		if val(input[0].KeyType) != dynamodb.KeyTypeHash {
+			errs = append(errs, newValidationError("KeySchema[0] must have type HASH"))
+		}
+		if len(val(input[0].AttributeName)) == 0 {
+			errs = append(errs, newValidationError("KeySchema[0] has no AttributeName"))
+		}
+	}
+
+	if len(input) > 1 {
+		if input[1] == nil {
+			errs = append(errs, newValidationErrorf("KeySchema[1] is nil"))
+		} else {
+			if val(input[1].KeyType) != dynamodb.KeyTypeRange {
+				errs = append(errs, newValidationError("KeySchema[1] must have type RANGE"))
+			}
+			if len(val(input[1].AttributeName)) == 0 {
+				errs = append(errs, newValidationError("KeySchema[1] has no AttributeName"))
+			}
+		}
+	}
+
+	return errors.Join(errs...)
+}
+
+func validateCreateTableInputTableName(input *string) error {
+	if input == nil {
+		return newValidationError("TableName is a required field")
+	} else if len(*input) < 3 || len(*input) > 255 {
+		return newValidationError("TableName must be between 3 and 255 characters")
 	}
 	return nil
+}
+
+func validateTableSchema(input *dynamodb.CreateTableInput) (*attrSchema, error) {
+
+	// TODO: check that keyschema is defined in attr definitions
+	schema := attrSchema{
+		others: make(map[string]string, len(input.AttributeDefinitions)),
+	}
+
+	return &schema, nil
 }
 
 func (d *DB) CreateTableWithContext(_ aws.Context, input *dynamodb.CreateTableInput, _ ...request.Option) (*dynamodb.CreateTableOutput, error) {
