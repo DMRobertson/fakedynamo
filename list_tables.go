@@ -6,9 +6,40 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 )
 
-func (d *DB) ListTables(_ *dynamodb.ListTablesInput) (*dynamodb.ListTablesOutput, error) {
-	// TODO implement me
-	panic("implement me")
+func (d *DB) ListTables(input *dynamodb.ListTablesInput) (*dynamodb.ListTablesOutput, error) {
+	if input.Limit != nil && (*input.Limit < 1 || *input.Limit > 100) {
+		return nil, newValidationError("Limit must be between 1 and 100")
+	}
+
+	inputCopy := *input
+	if input.Limit == nil {
+		inputCopy.Limit = ptr[int64](100)
+	}
+
+	start := tableKey(val(input.ExclusiveStartTableName))
+	output := dynamodb.ListTablesOutput{
+		TableNames: []*string{},
+	}
+	d.tables.AscendGreaterOrEqual(start, func(t table) bool {
+		if *t.spec.TableName == *start.spec.TableName {
+			// Ignore the previous ExclusiveStartTableName
+			return true
+		}
+		output.TableNames = append(output.TableNames, t.spec.TableName)
+		return len(output.TableNames) < int(*inputCopy.Limit)
+	})
+
+	if len(output.TableNames) == 0 {
+		return &output, nil
+	}
+
+	lastTableName := output.TableNames[len(output.TableNames)-1]
+	biggest, exists := d.tables.Max()
+	if exists && tableLess(tableKey(*lastTableName), biggest) {
+		output.LastEvaluatedTableName = lastTableName
+	}
+
+	return &output, nil
 }
 
 func (d *DB) ListTablesWithContext(_ aws.Context, input *dynamodb.ListTablesInput, _ ...request.Option) (*dynamodb.ListTablesOutput, error) {

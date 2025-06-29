@@ -28,7 +28,7 @@ func (d *DB) CreateTable(input *dynamodb.CreateTableInput) (*dynamodb.CreateTabl
 		return nil, err
 	}
 
-	if d.tables.Has(dummyTable(*input.TableName)) {
+	if d.tables.Has(tableKey(*input.TableName)) {
 		return nil, &dynamodb.ResourceInUseException{}
 	}
 	_, _ = d.tables.ReplaceOrInsert(table{

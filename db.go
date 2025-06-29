@@ -31,9 +31,7 @@ type DB struct {
 
 func NewDB() *DB {
 	return &DB{
-		tables: btree.NewG(2, func(a, b table) bool {
-			return cmp.Less(*a.spec.TableName, *b.spec.TableName)
-		}),
+		tables: btree.NewG(2, tableLess),
 	}
 }
 
@@ -52,8 +50,12 @@ type tableSchema struct {
 	others map[string]string
 }
 
-func dummyTable(name string) table {
+func tableKey(name string) table {
 	return table{spec: &dynamodb.CreateTableInput{
 		TableName: &name,
 	}}
+}
+
+func tableLess(a, b table) bool {
+	return cmp.Less(*a.spec.TableName, *b.spec.TableName)
 }

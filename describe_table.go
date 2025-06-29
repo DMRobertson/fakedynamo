@@ -22,7 +22,7 @@ func (d *DB) DescribeTable(input *dynamodb.DescribeTableInput) (*dynamodb.Descri
 }
 
 func (d *DB) describeTable(tableName string) *dynamodb.TableDescription {
-	table, exists := d.tables.Get(dummyTable(tableName))
+	table, exists := d.tables.Get(tableKey(tableName))
 	if !exists {
 		return nil
 	}
