@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/google/btree"
 )
 
 func (d *DB) CreateTable(input *dynamodb.CreateTableInput) (*dynamodb.CreateTableOutput, error) {
@@ -35,6 +36,7 @@ func (d *DB) CreateTable(input *dynamodb.CreateTableInput) (*dynamodb.CreateTabl
 		spec:      input,
 		createdAt: time.Now().UTC(),
 		schema:    *schema,
+		records:   btree.NewG[avmap](2, makeRecordLess(*schema)),
 	})
 	return &dynamodb.CreateTableOutput{
 		TableDescription: d.describeTable(*input.TableName),
