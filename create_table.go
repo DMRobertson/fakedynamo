@@ -3,6 +3,7 @@ package fakedynamo
 import (
 	"errors"
 	"slices"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/request"
@@ -31,10 +32,13 @@ func (d *DB) CreateTable(input *dynamodb.CreateTableInput) (*dynamodb.CreateTabl
 		return nil, &dynamodb.ResourceInUseException{}
 	}
 	d.tables[*input.TableName] = table{
-		schema: *schema,
+		originalInput: input,
+		createdAt:     time.Now().UTC(),
+		schema:        *schema,
 	}
-
-	return &dynamodb.CreateTableOutput{}, nil
+	return &dynamodb.CreateTableOutput{
+		TableDescription: d.describeTable(*input.TableName),
+	}, nil
 }
 
 var validAttributeTypes = []string{

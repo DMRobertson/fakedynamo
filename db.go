@@ -17,6 +17,12 @@
 // [LocalStack's implementation]: https://docs.localstack.cloud/user-guide/aws/dynamodb/
 package fakedynamo
 
+import (
+	"time"
+
+	"github.com/aws/aws-sdk-go/service/dynamodb"
+)
+
 type DB struct {
 	tables map[string]table
 }
@@ -28,7 +34,9 @@ func NewDB() *DB {
 }
 
 type table struct {
-	schema tableSchema
+	originalInput *dynamodb.CreateTableInput
+	schema        tableSchema
+	createdAt     time.Time
 }
 
 type tableSchema struct {

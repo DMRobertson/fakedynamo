@@ -301,21 +301,6 @@ func (d *DB) DescribeLimitsRequest(input *dynamodb.DescribeLimitsInput) (*reques
 	panic("implement me")
 }
 
-func (d *DB) DescribeTable(input *dynamodb.DescribeTableInput) (*dynamodb.DescribeTableOutput, error) {
-	// TODO implement me
-	panic("implement me")
-}
-
-func (d *DB) DescribeTableWithContext(context aws.Context, input *dynamodb.DescribeTableInput, option ...request.Option) (*dynamodb.DescribeTableOutput, error) {
-	// TODO implement me
-	panic("implement me")
-}
-
-func (d *DB) DescribeTableRequest(input *dynamodb.DescribeTableInput) (*request.Request, *dynamodb.DescribeTableOutput) {
-	// TODO implement me
-	panic("implement me")
-}
-
 func (d *DB) DescribeTableReplicaAutoScaling(input *dynamodb.DescribeTableReplicaAutoScalingInput) (*dynamodb.DescribeTableReplicaAutoScalingOutput, error) {
 	// TODO implement me
 	panic("implement me")

@@ -2,6 +2,7 @@ package fakedynamo_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/DMRobertson/fakedynamo"
 	"github.com/aws/aws-sdk-go/aws"
@@ -135,6 +136,23 @@ func TestDB_CreateTable_ValidationErrors(t *testing.T) {
 			},
 			ExpectErrorMessage: "Bar is missing from AttributeDefinitions",
 		},
+		{
+			Name: "Returns ValidationException when sort key's attribute is not defined",
+			Input: dynamodb.CreateTableInput{
+				AttributeDefinitions: []*dynamodb.AttributeDefinition{{
+					AttributeName: ptr("Foo"),
+					AttributeType: ptr("S"),
+				}},
+				KeySchema: []*dynamodb.KeySchemaElement{{
+					AttributeName: ptr("Foo"),
+					KeyType:       ptr(dynamodb.KeyTypeHash),
+				}, {
+					AttributeName: ptr("Bar"),
+					KeyType:       ptr(dynamodb.KeyTypeRange),
+				}},
+			},
+			ExpectErrorMessage: "Bar is missing from AttributeDefinitions",
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
@@ -171,4 +189,45 @@ func TestDB_CreateTable_ErrorsWhenTableExists(t *testing.T) {
 	var expectedErr *dynamodb.ResourceInUseException
 	assert.ErrorAs(t, err, &expectedErr)
 	assert.Nil(t, result)
+}
+
+func TestDB_CreateTable_HappyPath(t *testing.T) {
+	db := fakedynamo.NewDB()
+	input := dynamodb.CreateTableInput{
+		AttributeDefinitions: []*dynamodb.AttributeDefinition{
+			{
+				AttributeName: ptr("Foo"),
+				AttributeType: ptr("S"),
+			},
+			{
+				AttributeName: ptr("Bar"),
+				AttributeType: ptr("S"),
+			},
+		},
+		KeySchema: []*dynamodb.KeySchemaElement{
+			{
+				AttributeName: ptr("Foo"),
+				KeyType:       ptr(dynamodb.KeyTypeHash),
+			}, {
+				AttributeName: ptr("Bar"),
+				KeyType:       ptr(dynamodb.KeyTypeRange),
+			},
+		},
+
+		TableName: aws.String("my-table"),
+	}
+	result, err := db.CreateTable(&input)
+	assert.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.TableDescription)
+	td := result.TableDescription
+
+	assert.Equal(t, input.AttributeDefinitions, td.AttributeDefinitions)
+	assert.WithinDuration(t, time.Now(), val(td.CreationDateTime), time.Second)
+	assert.Equal(t, ptr[int64](0), td.ItemCount)
+	assert.Equal(t, input.KeySchema, td.KeySchema)
+	assert.Equal(t, input.OnDemandThroughput, td.OnDemandThroughput)
+	assert.Equal(t, input.StreamSpecification, td.StreamSpecification)
+	assert.Equal(t, input.TableName, td.TableName)
+	assert.Equal(t, ptr(dynamodb.TableStatusActive), td.TableStatus)
 }
