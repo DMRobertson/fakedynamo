@@ -45,7 +45,7 @@ func (d dummyAwsError) RequestID() string {
 // https://github.com/aws/aws-sdk/issues/47 and https://github.com/aws/aws-sdk-go-v2/issues/3040
 func newValidationException(message string) error {
 	return dummyAwsError{
-		code:           "ValidationError",
+		code:           "ValidationException",
 		message:        message,
 		httpStatusCode: http.StatusBadRequest,
 	}

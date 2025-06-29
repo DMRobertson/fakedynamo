@@ -21,45 +21,61 @@ func TestDB_CreateTable(t *testing.T) {
 		Input  dynamodb.CreateTableInput
 		Assert func(t *testing.T, result *dynamodb.CreateTableOutput, err error)
 	}
+	expectValidationError := expectValidationError[*dynamodb.CreateTableOutput]
+
 	testCases := []testCase{
 		{
-			Name: "Returns ValidationException for missing AttributeDefinitions",
-			Assert: func(t *testing.T, result *dynamodb.CreateTableOutput, err error) {
-				assert.Error(t, err)
-				assert.Nil(t, result)
+			Name:   "Returns ValidationException for missing AttributeDefinitions",
+			Assert: expectValidationError,
+		},
+		{
+			Name: "Returns ValidationException for missing KeySchema",
+			Input: dynamodb.CreateTableInput{
+				AttributeDefinitions: []*dynamodb.AttributeDefinition{{}},
 			},
+			Assert: expectValidationError,
+		},
+		{
+			Name: "Returns ValidationException for undersized KeySchema",
+			Input: dynamodb.CreateTableInput{
+				AttributeDefinitions: []*dynamodb.AttributeDefinition{{}},
+				KeySchema:            []*dynamodb.KeySchemaElement{},
+			},
+			Assert: expectValidationError,
+		},
+		{
+			Name: "Returns ValidationException for oversized KeySchema",
+			Input: dynamodb.CreateTableInput{
+				AttributeDefinitions: []*dynamodb.AttributeDefinition{{}},
+				KeySchema:            []*dynamodb.KeySchemaElement{{}, {}, {}},
+			},
+			Assert: expectValidationError,
 		},
 		{
 			Name: "Returns ValidationException for missing table name",
 			Input: dynamodb.CreateTableInput{
 				AttributeDefinitions: []*dynamodb.AttributeDefinition{{}},
+				KeySchema:            []*dynamodb.KeySchemaElement{{}},
 			},
-			Assert: func(t *testing.T, result *dynamodb.CreateTableOutput, err error) {
-				assert.Error(t, err)
-				assert.Nil(t, result)
-			},
+			Assert: expectValidationError,
 		},
 		{
 			Name: "Returns ValidationException for undersized table name",
 			Input: dynamodb.CreateTableInput{
 				AttributeDefinitions: []*dynamodb.AttributeDefinition{{}},
+				KeySchema:            []*dynamodb.KeySchemaElement{{}},
 				TableName:            aws.String("ab"),
 			},
-			Assert: func(t *testing.T, result *dynamodb.CreateTableOutput, err error) {
-				assert.Error(t, err)
-				assert.Nil(t, result)
-			},
+			Assert: expectValidationError,
 		},
 		{
 			Name: "Returns ValidationException for oversized table name",
 			Input: dynamodb.CreateTableInput{
 				AttributeDefinitions: []*dynamodb.AttributeDefinition{{}},
+				KeySchema:            []*dynamodb.KeySchemaElement{{}},
 				TableName:            aws.String(threeHundredCharString),
 			},
-			Assert: func(t *testing.T, result *dynamodb.CreateTableOutput, err error) {
-				assert.Error(t, err)
-				assert.Nil(t, result)
-			},
+			Assert: expectValidationError,
 		},
 		{
 			Name: "Returns ResourceInUseException when table already exists",
@@ -70,6 +86,7 @@ func TestDB_CreateTable(t *testing.T) {
 			},
 			Input: dynamodb.CreateTableInput{
 				AttributeDefinitions: []*dynamodb.AttributeDefinition{{}},
+				KeySchema:            []*dynamodb.KeySchemaElement{{}},
 				TableName:            aws.String("my-table"),
 			},
 			Assert: func(t *testing.T, result *dynamodb.CreateTableOutput, err error) {
@@ -89,5 +106,9 @@ func TestDB_CreateTable(t *testing.T) {
 			tc.Assert(t, result, err)
 		})
 	}
+}
 
+func expectValidationError[R any](t *testing.T, result R, err error) {
+	assert.ErrorContains(t, err, "ValidationException")
+	assert.Nil(t, result)
 }

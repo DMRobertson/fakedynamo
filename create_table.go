@@ -7,8 +7,8 @@ import (
 )
 
 func (d *DB) CreateTable(input *dynamodb.CreateTableInput) (*dynamodb.CreateTableOutput, error) {
-	if input.AttributeDefinitions == nil {
-		return nil, newValidationException("AttributeDefinitions is a required field")
+	if err := validateTableSchema(input); err != nil {
+		return nil, err
 	}
 
 	if input.TableName == nil {
@@ -23,6 +23,19 @@ func (d *DB) CreateTable(input *dynamodb.CreateTableInput) (*dynamodb.CreateTabl
 	d.tables[*input.TableName] = table{}
 
 	return &dynamodb.CreateTableOutput{}, nil
+}
+
+func validateTableSchema(input *dynamodb.CreateTableInput) error {
+	if input.AttributeDefinitions == nil {
+		return newValidationException("AttributeDefinitions is a required field")
+	}
+
+	if input.KeySchema == nil {
+		return newValidationException("KeySchema is a required field")
+	} else if len(input.KeySchema) != 1 && len(input.KeySchema) != 2 {
+		return newValidationException("KeySchema must contain 1 or 2 items")
+	}
+	return nil
 }
 
 func (d *DB) CreateTableWithContext(_ aws.Context, input *dynamodb.CreateTableInput, _ ...request.Option) (*dynamodb.CreateTableOutput, error) {
