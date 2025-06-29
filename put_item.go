@@ -42,14 +42,20 @@ func (d *DB) PutItem(input *dynamodb.PutItemInput) (*dynamodb.PutItemOutput, err
 			case dynamodb.ScalarAttributeTypeS:
 				if attrVal.S == nil {
 					errs = append(errs, newValidationErrorf("Item.%s is defined to have type S", attrName))
+				} else if len(*attrVal.S) == 0 {
+					errs = append(errs, newValidationErrorf("Item.%s.S cannot be empty", attrName))
 				}
 			case dynamodb.ScalarAttributeTypeB:
 				if attrVal.B == nil {
 					errs = append(errs, newValidationErrorf("Item.%s is defined to have type B", attrName))
+				} else if len(attrVal.B) == 0 {
+					errs = append(errs, newValidationErrorf("Item.%s.B cannot be empty", attrName))
 				}
 			case dynamodb.ScalarAttributeTypeN:
 				if attrVal.N == nil {
 					errs = append(errs, newValidationErrorf("Item.%s is defined to have type N", attrName))
+				} else if len(*attrVal.N) == 0 {
+					errs = append(errs, newValidationErrorf("Item.%s.N cannot be empty", attrName))
 				}
 			}
 		}
@@ -88,9 +94,15 @@ func validatePutItemInputItem(item avmap) error {
 			if typesSet != 1 {
 				errs = append(errs, newValidationErrorf("Item.%s must have exactly 1 data type specified", key))
 			}
+			// TODO: recursively validate composite types like M and L
 		}
 	}
 
+	// TODO: check item size here too, see
+	// https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/CapacityUnitCalculations.html
+
+	// TODO: validate number format
+	// TODO: validate uniqueness of items in sets, and nonemptyness
 	return errors.Join(errs...)
 }
 

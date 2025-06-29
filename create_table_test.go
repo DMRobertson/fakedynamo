@@ -195,6 +195,18 @@ func exampleCreateTableInputSimplePrimaryKey() *dynamodb.CreateTableInput {
 				AttributeName: ptr("Foo"),
 				AttributeType: ptr("S"),
 			},
+			{
+				AttributeName: ptr("String"),
+				AttributeType: ptr("S"),
+			},
+			{
+				AttributeName: ptr("Binary"),
+				AttributeType: ptr("B"),
+			},
+			{
+				AttributeName: ptr("Number"),
+				AttributeType: ptr("N"),
+			},
 		},
 		KeySchema: []*dynamodb.KeySchemaElement{
 			{

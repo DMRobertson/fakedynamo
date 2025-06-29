@@ -116,6 +116,9 @@ func validateCreateTableInputTableName(input *string) error {
 	} else if len(*input) < 1 || len(*input) > 1024 {
 		return newValidationError("TableName must be between 1 and 1024 characters")
 	}
+
+	// TODO: validate name characters, see
+	// https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.NamingRulesDataTypes.html#HowItWorks.NamingRules
 	return nil
 }
 

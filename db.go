@@ -26,6 +26,9 @@ import (
 )
 
 type DB struct {
+	// tables tracks the tables stored in the database. It's a BTree rather than
+	// a plain map, because ListTables needs to be able to paginate through in a
+	// consistent order.
 	tables *btree.BTreeG[table]
 }
 
@@ -35,8 +38,10 @@ func NewDB() *DB {
 	}
 }
 
+// table models a single DynamoDB table.
 type table struct {
-	spec      *dynamodb.CreateTableInput
+	spec *dynamodb.CreateTableInput
+	// schema holds parsed information from the spec for easy access.
 	schema    tableSchema
 	createdAt time.Time
 }

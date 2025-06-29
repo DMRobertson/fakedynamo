@@ -98,8 +98,90 @@ func Test_PutItem_ValidationErrors(t *testing.T) {
 			},
 			ExpectErrorMessage: "Item does not define sort key Bar",
 		},
-
-		// TODO: Returns ValidationException when sort key is missing
+		{
+			Name: "Returns ValidationException on String key type mismatch",
+			Setup: func(t *testing.T, db *fakedynamo.DB, tc *testCase) {
+				_, err := db.CreateTable(exampleSimpleTableSpec)
+				require.NoError(t, err)
+			},
+			Input: dynamodb.PutItemInput{
+				Item: map[string]*dynamodb.AttributeValue{
+					"Foo": {N: ptr("123")},
+				},
+				TableName: exampleSimpleTableSpec.TableName,
+			},
+			ExpectErrorMessage: "Item.Foo is defined to have type S",
+		},
+		{
+			Name: "Returns ValidationException on String key with empty value",
+			Setup: func(t *testing.T, db *fakedynamo.DB, tc *testCase) {
+				_, err := db.CreateTable(exampleSimpleTableSpec)
+				require.NoError(t, err)
+			},
+			Input: dynamodb.PutItemInput{
+				Item: map[string]*dynamodb.AttributeValue{
+					"Foo": {S: ptr("")},
+				},
+				TableName: exampleSimpleTableSpec.TableName,
+			},
+			ExpectErrorMessage: "Item.Foo.S cannot be empty",
+		},
+		{
+			Name: "Returns ValidationException on Binary key type mismatch",
+			Setup: func(t *testing.T, db *fakedynamo.DB, tc *testCase) {
+				_, err := db.CreateTable(exampleSimpleTableSpec)
+				require.NoError(t, err)
+			},
+			Input: dynamodb.PutItemInput{
+				Item: map[string]*dynamodb.AttributeValue{
+					"Binary": {S: ptr("123")},
+				},
+				TableName: exampleSimpleTableSpec.TableName,
+			},
+			ExpectErrorMessage: "Item.Binary is defined to have type B",
+		},
+		{
+			Name: "Returns ValidationException on Binary key with empty value",
+			Setup: func(t *testing.T, db *fakedynamo.DB, tc *testCase) {
+				_, err := db.CreateTable(exampleSimpleTableSpec)
+				require.NoError(t, err)
+			},
+			Input: dynamodb.PutItemInput{
+				Item: map[string]*dynamodb.AttributeValue{
+					"Binary": {B: []byte{}},
+				},
+				TableName: exampleSimpleTableSpec.TableName,
+			},
+			ExpectErrorMessage: "Item.Binary.B cannot be empty",
+		},
+		{
+			Name: "Returns ValidationException on Number key type mismatch",
+			Setup: func(t *testing.T, db *fakedynamo.DB, tc *testCase) {
+				_, err := db.CreateTable(exampleSimpleTableSpec)
+				require.NoError(t, err)
+			},
+			Input: dynamodb.PutItemInput{
+				Item: map[string]*dynamodb.AttributeValue{
+					"Number": {S: ptr("123")},
+				},
+				TableName: exampleSimpleTableSpec.TableName,
+			},
+			ExpectErrorMessage: "Item.Number is defined to have type N",
+		},
+		{
+			Name: "Returns ValidationException on Number key with empty value",
+			Setup: func(t *testing.T, db *fakedynamo.DB, tc *testCase) {
+				_, err := db.CreateTable(exampleSimpleTableSpec)
+				require.NoError(t, err)
+			},
+			Input: dynamodb.PutItemInput{
+				Item: map[string]*dynamodb.AttributeValue{
+					"Number": {N: ptr("")},
+				},
+				TableName: exampleSimpleTableSpec.TableName,
+			},
+			ExpectErrorMessage: "Item.Number.N cannot be empty",
+		},
 	}
 
 	for _, tc := range testCases {
