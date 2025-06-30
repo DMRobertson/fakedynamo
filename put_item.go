@@ -2,6 +2,7 @@ package fakedynamo
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/request"
@@ -10,9 +11,12 @@ import (
 
 func (d *DB) PutItem(input *dynamodb.PutItemInput) (*dynamodb.PutItemOutput, error) {
 	var errs []error
-	if err := validatePutItemInputItem(input.Item); err != nil {
+	if err := validatePutItemInputMap(input.Item, ""); err != nil {
 		errs = append(errs, err)
 	}
+
+	// TODO: parse condition expression
+	// TODO: check condition expression before write
 
 	var t table
 	var exists bool
@@ -28,6 +32,8 @@ func (d *DB) PutItem(input *dynamodb.PutItemInput) (*dynamodb.PutItemOutput, err
 		return nil, err
 	}
 
+	// TODO: return old values if requested
+	// TODO: store the record
 	return nil, nil
 }
 
@@ -73,48 +79,70 @@ func (d *DB) validateItemMatchesSchema(item avmap, t table) error {
 	return errors.Join(errs...)
 }
 
-func validatePutItemInputItem(item avmap) error {
+func validatePutItemInputMap(item avmap, fieldPath string) error {
 	if item == nil {
-		return newValidationError("Item is a required field")
+		return newValidationErrorf("Item%s is a required field", fieldPath)
 	}
 
 	var errs []error
-	for key, value := range item {
+	for key, element := range item {
 		if len(key) > 65535 {
-			errs = append(errs, newValidationErrorf("Item.%s key too large, max 65535 characters", key[:100]))
+			errs = append(errs, newValidationErrorf(
+				"Item%s.%s(...) key too large, max 65535 characters", fieldPath, key[:100]))
 		}
-		if value == nil {
-			errs = append(errs, newValidationErrorf("Item.%s is nil", key))
-		} else {
-			typesSet := toInt(value.B != nil) +
-				toInt(value.BOOL != nil) +
-				toInt(value.BS != nil) +
-				toInt(value.L != nil) +
-				toInt(value.M != nil) +
-				toInt(value.N != nil) +
-				toInt(value.NS != nil) +
-				toInt(value.NULL != nil) +
-				toInt(value.S != nil) +
-				toInt(value.SS != nil)
-			if typesSet != 1 {
-				errs = append(errs, newValidationErrorf("Item.%s must have exactly 1 data type specified", key))
-			}
-			// TODO: recursively validate composite types like M and L
+		err := validatePutItemInputAttributeValue(element, fmt.Sprintf("%s.%s", fieldPath, key))
+		if err != nil {
+			errs = append(errs, err)
 		}
 	}
 
 	// TODO: check item size here too, see
 	// https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/CapacityUnitCalculations.html
+	return errors.Join(errs...)
+}
+
+func validatePutItemInputAttributeValue(value *dynamodb.AttributeValue, fieldPath string) error {
+	if value == nil {
+		return newValidationErrorf("Item%s is nil", fieldPath)
+	}
+
+	typesSet := toInt(value.B != nil) +
+		toInt(value.BOOL != nil) +
+		toInt(value.BS != nil) +
+		toInt(value.L != nil) +
+		toInt(value.M != nil) +
+		toInt(value.N != nil) +
+		toInt(value.NS != nil) +
+		toInt(value.NULL != nil) +
+		toInt(value.S != nil) +
+		toInt(value.SS != nil)
+	if typesSet != 1 {
+		return newValidationErrorf("Item%s must have exactly 1 data type specified", fieldPath)
+	}
 
 	// TODO: validate number format
 	// TODO: validate uniqueness of items in sets, and nonemptyness
-	return errors.Join(errs...)
+
+	if value.L != nil {
+		var errs []error
+		for i, element := range value.L {
+			err := validatePutItemInputAttributeValue(element, fmt.Sprintf("%s[%d]", fieldPath, i))
+			if err != nil {
+				errs = append(errs, err)
+			}
+		}
+		return errors.Join(errs...)
+	}
+	if value.M != nil {
+		return validatePutItemInputMap(value.M, fieldPath)
+	}
+	return nil
 }
 
 func (d *DB) PutItemWithContext(_ aws.Context, input *dynamodb.PutItemInput, _ ...request.Option) (*dynamodb.PutItemOutput, error) {
 	return d.PutItem(input)
 }
 
-func (d *DB) PutItemRequest(input *dynamodb.PutItemInput) (*request.Request, *dynamodb.PutItemOutput) {
+func (d *DB) PutItemRequest(_ *dynamodb.PutItemInput) (*request.Request, *dynamodb.PutItemOutput) {
 	panic("not implemented: PutItemRequest")
 }

@@ -63,6 +63,26 @@ func Test_PutItem_ValidationErrors(t *testing.T) {
 			ExpectErrorMessage: "Item.123 must have exactly 1 data type specified",
 		},
 		{
+			Name: "Returns ValidationException when list elements are invalid",
+			Input: dynamodb.PutItemInput{
+				Item: map[string]*dynamodb.AttributeValue{
+					"A": {L: []*dynamodb.AttributeValue{{S: ptr("B"), N: ptr("3")}}}},
+			},
+			ExpectErrorMessage: "Item.A[0] must have exactly 1 data type specified",
+		},
+		{
+			Name: "Returns ValidationException when map elements are invalid",
+			Input: dynamodb.PutItemInput{
+				Item: map[string]*dynamodb.AttributeValue{
+					"A": {M: map[string]*dynamodb.AttributeValue{
+						hugeKey: {S: ptr("B")},
+					}},
+				},
+			},
+			ExpectErrorMessage: "key too large, max 65535 characters",
+		},
+
+		{
 			Name:               "Returns ValidationException when TableName is missing",
 			Input:              dynamodb.PutItemInput{},
 			ExpectErrorMessage: "TableName is a required field",
