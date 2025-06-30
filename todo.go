@@ -21,31 +21,6 @@ func (d *DB) BatchExecuteStatementRequest(input *dynamodb.BatchExecuteStatementI
 	panic("implement me")
 }
 
-func (d *DB) BatchGetItem(input *dynamodb.BatchGetItemInput) (*dynamodb.BatchGetItemOutput, error) {
-	// TODO implement me
-	panic("implement me")
-}
-
-func (d *DB) BatchGetItemWithContext(context aws.Context, input *dynamodb.BatchGetItemInput, option ...request.Option) (*dynamodb.BatchGetItemOutput, error) {
-	// TODO implement me
-	panic("implement me")
-}
-
-func (d *DB) BatchGetItemRequest(input *dynamodb.BatchGetItemInput) (*request.Request, *dynamodb.BatchGetItemOutput) {
-	// TODO implement me
-	panic("implement me")
-}
-
-func (d *DB) BatchGetItemPages(input *dynamodb.BatchGetItemInput, f func(*dynamodb.BatchGetItemOutput, bool) bool) error {
-	// TODO implement me
-	panic("implement me")
-}
-
-func (d *DB) BatchGetItemPagesWithContext(context aws.Context, input *dynamodb.BatchGetItemInput, f func(*dynamodb.BatchGetItemOutput, bool) bool, option ...request.Option) error {
-	// TODO implement me
-	panic("implement me")
-}
-
 func (d *DB) BatchWriteItem(input *dynamodb.BatchWriteItemInput) (*dynamodb.BatchWriteItemOutput, error) {
 	// TODO implement me
 	panic("implement me")
@@ -387,21 +362,6 @@ func (d *DB) ExportTableToPointInTimeWithContext(context aws.Context, input *dyn
 }
 
 func (d *DB) ExportTableToPointInTimeRequest(input *dynamodb.ExportTableToPointInTimeInput) (*request.Request, *dynamodb.ExportTableToPointInTimeOutput) {
-	// TODO implement me
-	panic("implement me")
-}
-
-func (d *DB) GetItem(input *dynamodb.GetItemInput) (*dynamodb.GetItemOutput, error) {
-	// TODO implement me
-	panic("implement me")
-}
-
-func (d *DB) GetItemWithContext(context aws.Context, input *dynamodb.GetItemInput, option ...request.Option) (*dynamodb.GetItemOutput, error) {
-	// TODO implement me
-	panic("implement me")
-}
-
-func (d *DB) GetItemRequest(input *dynamodb.GetItemInput) (*request.Request, *dynamodb.GetItemOutput) {
 	// TODO implement me
 	panic("implement me")
 }
