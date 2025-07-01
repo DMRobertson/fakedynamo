@@ -32,8 +32,9 @@ func (d *DB) PutItem(input *dynamodb.PutItemInput) (*dynamodb.PutItemOutput, err
 		return nil, err
 	}
 
+	_, _ = t.records.ReplaceOrInsert(input.Item)
+
 	// TODO: return old values if requested
-	// TODO: store the record
 	return nil, nil
 }
 

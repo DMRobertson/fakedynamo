@@ -241,7 +241,7 @@ func exampleCreateTableInputCompositePrimaryKey() *dynamodb.CreateTableInput {
 			},
 		},
 
-		TableName: aws.String("my-table"),
+		TableName: aws.String("composite-table"),
 	}
 }
 
