@@ -95,6 +95,20 @@ func Test_PutItem_ValidationErrors(t *testing.T) {
 			ExpectErrorAs: &dynamodb.ResourceNotFoundException{},
 		},
 		{
+			Name: "Returns ValidationException for invalid ReturnValues",
+			Input: dynamodb.PutItemInput{
+				ReturnValues: ptr("POTATO"),
+			},
+			ExpectErrorMessage: "ReturnValues must be NONE or ALL_OLD",
+		},
+		{
+			Name: "Returns ValidationException for invalid ReturnValuesOnConditionCheckFailure",
+			Input: dynamodb.PutItemInput{
+				ReturnValues: ptr("POTATO"),
+			},
+			ExpectErrorMessage: "ReturnValuesOnConditionCheckFailure must be NONE or ALL_OLD",
+		},
+		{
 			Name: "Returns ValidationException when partition key is missing",
 			Setup: func(t *testing.T, db *fakedynamo.DB, tc *testCase) {
 				_, err := db.CreateTable(exampleSimpleTableSpec)
@@ -219,5 +233,70 @@ func Test_PutItem_ValidationErrors(t *testing.T) {
 			assert.Nil(t, result)
 		})
 	}
+}
 
+func TestDB_PutItem_ReturnValues(t *testing.T) {
+	t.Parallel()
+
+	db := fakedynamo.NewDB()
+	tableOutput, err := db.CreateTable(exampleCreateTableInputSimplePrimaryKey())
+	require.NoError(t, err)
+
+	makeRecord := func(other string) map[string]*dynamodb.AttributeValue {
+		return map[string]*dynamodb.AttributeValue{
+			"Foo":   {S: ptr("foo")},
+			"Other": {S: &other},
+		}
+	}
+
+	// First write overwrites nothing.
+	result, err := db.PutItem(&dynamodb.PutItemInput{
+		Item:      makeRecord("A"),
+		TableName: tableOutput.TableDescription.TableName,
+	})
+	assert.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Nil(t, result.Attributes)
+
+	// Overwriting with no return values specified returns no attributes.
+	result, err = db.PutItem(&dynamodb.PutItemInput{
+		Item:      makeRecord("B"),
+		TableName: tableOutput.TableDescription.TableName,
+	})
+	assert.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Nil(t, result.Attributes)
+
+	// Overwriting with an explicit NONE return values returns no attributes.
+	recordC := makeRecord("C")
+	result, err = db.PutItem(&dynamodb.PutItemInput{
+		Item:         recordC,
+		TableName:    tableOutput.TableDescription.TableName,
+		ReturnValues: ptr(dynamodb.ReturnValueNone),
+	})
+	assert.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Nil(t, result.Attributes)
+
+	// Overwriting returns the old record
+	recordD := makeRecord("D")
+	result, err = db.PutItem(&dynamodb.PutItemInput{
+		Item:         recordD,
+		TableName:    tableOutput.TableDescription.TableName,
+		ReturnValues: ptr(dynamodb.ReturnValueAllOld),
+	})
+	assert.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Equal(t, recordC, result.Attributes)
+
+	// We should still be able to retrieve the latest write.
+	getResult, err := db.GetItem(&dynamodb.GetItemInput{
+		Key: map[string]*dynamodb.AttributeValue{
+			"Foo": {S: ptr("foo")},
+		},
+		TableName: tableOutput.TableDescription.TableName,
+	})
+	assert.NoError(t, err)
+	require.NotNil(t, getResult)
+	assert.Equal(t, recordD, getResult.Item)
 }

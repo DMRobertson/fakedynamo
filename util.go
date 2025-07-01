@@ -17,6 +17,13 @@ func val[T any](p *T) T {
 	return zeroValue
 }
 
+func valOr[T any](p *T, fallback T) T {
+	if p != nil {
+		return *p
+	}
+	return fallback
+}
+
 func toInt(b bool) int {
 	if b {
 		return 1

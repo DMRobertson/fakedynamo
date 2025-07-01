@@ -15,6 +15,21 @@ func (d *DB) PutItem(input *dynamodb.PutItemInput) (*dynamodb.PutItemOutput, err
 		errs = append(errs, err)
 	}
 
+	returnValues := valOr(input.ReturnValues, dynamodb.ReturnValueNone)
+	switch returnValues {
+	case dynamodb.ReturnValueNone:
+	case dynamodb.ReturnValueAllOld:
+	default:
+		errs = append(errs, newValidationError("ReturnValues must be NONE or ALL_OLD for PutItem"))
+	}
+	returnValuesOnConditionCheckFailure := valOr(input.ReturnValues, dynamodb.ReturnValueNone)
+	switch returnValuesOnConditionCheckFailure {
+	case dynamodb.ReturnValueNone:
+	case dynamodb.ReturnValueAllOld:
+	default:
+		errs = append(errs, newValidationError("ReturnValuesOnConditionCheckFailure must be NONE or ALL_OLD for PutItem"))
+	}
+
 	// TODO: parse condition expression
 	// TODO: check condition expression before write
 
@@ -32,10 +47,13 @@ func (d *DB) PutItem(input *dynamodb.PutItemInput) (*dynamodb.PutItemOutput, err
 		return nil, err
 	}
 
-	_, _ = t.records.ReplaceOrInsert(input.Item)
+	var output dynamodb.PutItemOutput
+	previous, replaced := t.records.ReplaceOrInsert(input.Item)
+	if replaced && returnValues == dynamodb.ReturnValueAllOld {
+		output.Attributes = previous
+	}
 
-	// TODO: return old values if requested
-	return nil, nil
+	return &output, nil
 }
 
 func (d *DB) validateItemMatchesSchema(item avmap, t table) error {
