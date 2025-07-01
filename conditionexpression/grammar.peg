@@ -1,0 +1,48 @@
+package conditionexpression
+
+type parser Peg {
+
+}
+
+ConditionExpression <- SPACING Condition SPACING END
+
+Condition <- AtomicCondition / BooleanOperation
+
+AtomicCondition
+ <- Comparison
+#  / Membership
+  / Range
+  / Function
+  / '(' SPACING Condition SPACING ')'
+  /
+
+BooleanOperation
+ <- Condition SPACING 'AND' SPACING Condition
+  / Condition SPACING 'OR'  SPACING Condition
+
+Comparison <-
+    (AttributeName/AttributeRef)
+    SPACING ComparisonOperator SPACING
+    ValueRef
+
+ComparisonOperator <- '=' / '<' ![>=] / '<>' / '<=' / '>' !'=' / '>='
+
+Range <-
+    (AttributeName/AttributeRef) SPACING
+    'BETWEEN' SPACING ValueRef SPACING 'AND' SPACING ValueRef
+
+Function <-
+  BeginsWith
+
+BeginsWith <-
+    'begins_with' SPACING '(' SPACING
+    (AttributeName/AttributeRef) SPACING ',' SPACING
+    ValueRef SPACING ')'
+
+AttributeName <- [a-zA-Z0-9]+
+AttributeRef <- '#' [a-zA-Z0-9]+
+ValueRef <- ':' [a-zA-Z0-9]+
+
+SPACING <- ' '*
+
+END <- !.
