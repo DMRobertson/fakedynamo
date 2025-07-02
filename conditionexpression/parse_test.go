@@ -14,7 +14,9 @@ func TestParser_Parse(t *testing.T) {
 		// Key condition expressions
 		// From https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_Query.html#DDB-Query-request-KeyConditionExpression
 		"partitionKeyName = :partitionkeyval",
+		"ForumName = :name",
 		"partitionKeyName = :partitionkeyval AND sortKeyName = :sortkeyval",
+		"ForumName = :name and Subject = :sub",
 		"sortKeyName = :sortkeyval",
 		"sortKeyName < :sortkeyval",
 		"sortKeyName <= :sortkeyval",
@@ -24,12 +26,14 @@ func TestParser_Parse(t *testing.T) {
 		"#S = :myval",
 		"sortKeyName BETWEEN :sortkeyval1 AND :sortkeyval2",
 		"begins_with ( sortKeyName, :sortkeyval )",
+
+		"Id = :id and begins_with(ReplyDateTime, :dt)",
 		// Generic condition expressions
 		// From https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.OperatorsAndFunctions.html
 		"attribute_exists (#Pictures.#SideView)",
 		"attribute_not_exists (Manufacturer)",
 		// "attribute_type (ProductReviews.FiveStar, :v_sub)",
-		// "begins_with (Pictures.FrontView, :v_sub)",
+		"begins_with (Pictures.FrontView, :v_sub)",
 		// "contains (Color, :v_sub)",
 		// "size (Brand) <= :v_sub",
 		// "size(VideoClip) > :v_sub",
@@ -41,6 +45,7 @@ func TestParser_Parse(t *testing.T) {
 		// "NOT a",
 		// "a OR b AND c",
 		// "(a OR b) AND c",
+		// "contains(Color, :c) and Price <= :p",
 	}
 
 	for _, expr := range examples {

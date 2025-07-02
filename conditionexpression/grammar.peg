@@ -4,51 +4,63 @@ type Parser Peg {
 
 }
 
-ConditionExpression <- SPACING Condition SPACING END
+ConditionExpression <- SP* Condition SP* END
 
-Condition
- <- '(' SPACING Condition SPACING ')'
-  / 'NOT' SPACING Condition
-  / AtomicCondition (SPACING 'AND' SPACING Condition)+
-  / AtomicCondition (SPACING 'OR' SPACING Condition)*
+# https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.ExpressionAttributeNames.html
+ExpressionAttributeName <- '#' [a-zA-Z_]+
 
-AtomicCondition
- <- Comparison
-#  / Membership
-  / Range
-  / Function
+# https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.Attributes.html
+RawAttribute <- [a-zA-Z] [a-zA-Z0-9]*
 
-Comparison <-
-    (AttributeName/AttributeRef)
-    SPACING ComparisonOperator SPACING
-    ValueRef
+Name <- RawAttribute / ExpressionAttributeName
+ListDereference <- '[' [0-9]+ ']'
+MapDereference <- '.' Name
+DocumentPath <- Name (ListDereference / MapDereference)*
 
-ComparisonOperator <- '=' / '<' ![>=] / '<>' / '<=' / '>' !'=' / '>='
+# https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.ExpressionAttributeValues.html
+ExpressionAttributeValue <- ':' [a-zA-Z0-9_]+
 
-Range <-
-    (AttributeName/AttributeRef) SPACING
-    'BETWEEN' SPACING ValueRef SPACING 'AND' SPACING ValueRef
+# https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.OperatorsAndFunctions.html#Expressions.OperatorsAndFunctions.Syntax
 
-Function <- BeginsWith / AttributeExists / AttributeNotExists
+Operand <- DocumentPath / ExpressionAttributeValue
 
+Comparison <- Operand SP* Comparator SP* Operand
+Comparator <- '=' / '<>' / '<=' / '<' / '>=' / '>'
+
+Range <- Operand SP+ 'BETWEEN' SP+ Operand SP+ 'AND' SP+ Operand
+Membership <- Operand SP+ 'IN' SP* '(' SP* Operand (SP* ',' SP* Operand SP*)+ ')'
+
+Function <- AttributeExists / AttributeNotExists / AttributeType / BeginsWith / Contains / Size
+
+AttributeExists <- 'attribute_exists' SP* '(' SP* DocumentPath SP* ')'
+AttributeNotExists <- 'attribute_not_exists' SP* '(' SP* DocumentPath SP* ')'
+AttributeType <-
+    'attribute_type' SP* '(' SP*
+        DocumentPath SP* ',' SP* ExpressionAttributeValue
+    SP* ')'
 BeginsWith <-
-    'begins_with' SPACING '(' SPACING
-    Attribute SPACING ',' SPACING
-    ValueRef SPACING ')'
+    'begins_with' SP* '(' SP*
+        DocumentPath SP* ',' SP* ExpressionAttributeValue
+    SP* ')'
+Contains <-
+    'contains' SP* '(' SP*
+        DocumentPath SP* ',' SP* Operand
+    SP* ')'
+Size <- 'size' SP* '(' SP* DocumentPath SP* ',' SP* ')'
 
-AttributeExists
- <- 'attribute_exists'     SPACING '(' SPACING Attribute SPACING ')'
+Condition <- Disjunct (SP+ OR SP+ Disjunct)*
+Disjunct <- Conjunct (SP+ AND SP+ Conjunct)*
+Conjunct <-
+    'NOT' SP+ Condition
+    / '(' SP* Condition SP* ')'
+    / Function
+    / Range
+    / Membership
+    / Contains
+    / Comparison
 
-AttributeNotExists
- <- 'attribute_not_exists' SPACING '(' SPACING Attribute SPACING ')'
+AND <- 'AND' / 'and'
+OR <- 'OR' / 'or'
 
-AttributeName <- [a-zA-Z0-9]+
-AttributeRef <- '#' [a-zA-Z0-9]+
-
-Attribute <- (AttributeName/AttributeRef) ('.' Attribute)*
-
-ValueRef <- ':' [a-zA-Z0-9]+
-
-SPACING <- ' '*
-
+SP <- ' '
 END <- !.
