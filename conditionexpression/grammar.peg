@@ -4,7 +4,7 @@ type Parser Peg {
 
 }
 
-ConditionExpression <- SP* Condition SP* END
+ConditionExpression <- MAYBE_SP Condition MAYBE_SP END
 
 # https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.ExpressionAttributeNames.html
 ExpressionAttributeName <- '#' [a-zA-Z_]+
@@ -22,38 +22,41 @@ ExpressionAttributeValue <- ':' [a-zA-Z0-9_]+
 
 # https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.OperatorsAndFunctions.html#Expressions.OperatorsAndFunctions.Syntax
 
-Operand <- DocumentPath / ExpressionAttributeValue
+Operand <- Size / DocumentPath / ExpressionAttributeValue
+Size <- 'size' MAYBE_SP '(' MAYBE_SP DocumentPath MAYBE_SP ')'
 
-Comparison <- Operand SP* Comparator SP* Operand
+Comparison <- Operand MAYBE_SP Comparator MAYBE_SP Operand
 Comparator <- '=' / '<>' / '<=' / '<' / '>=' / '>'
 
-Range <- Operand SP+ 'BETWEEN' SP+ Operand SP+ 'AND' SP+ Operand
-Membership <- Operand SP+ 'IN' SP* '(' SP* Operand (SP* ',' SP* Operand SP*)+ ')'
+Range <- Operand SP 'BETWEEN' SP Operand SP 'AND' SP Operand
+Membership <- Operand SP 'IN' MAYBE_SP '(' MAYBE_SP Operand (MAYBE_SP ',' MAYBE_SP Operand MAYBE_SP)+ ')'
 
-Function <- AttributeExists / AttributeNotExists / AttributeType / BeginsWith / Contains / Size
+FunctionReturningBool <- AttributeExists / AttributeNotExists / AttributeType / BeginsWith / Contains
 
-AttributeExists <- 'attribute_exists' SP* '(' SP* DocumentPath SP* ')'
-AttributeNotExists <- 'attribute_not_exists' SP* '(' SP* DocumentPath SP* ')'
+AttributeExists <- 'attribute_exists' MAYBE_SP '(' MAYBE_SP DocumentPath MAYBE_SP ')'
+AttributeNotExists <- 'attribute_not_exists' MAYBE_SP '(' MAYBE_SP DocumentPath MAYBE_SP ')'
 AttributeType <-
-    'attribute_type' SP* '(' SP*
-        DocumentPath SP* ',' SP* ExpressionAttributeValue
-    SP* ')'
+    'attribute_type' MAYBE_SP '(' MAYBE_SP
+        DocumentPath MAYBE_SP ',' MAYBE_SP ExpressionAttributeValue
+    MAYBE_SP ')'
 BeginsWith <-
-    'begins_with' SP* '(' SP*
-        DocumentPath SP* ',' SP* ExpressionAttributeValue
-    SP* ')'
+    'begins_with' MAYBE_SP '(' MAYBE_SP
+        DocumentPath MAYBE_SP ',' MAYBE_SP ExpressionAttributeValue
+    MAYBE_SP ')'
 Contains <-
-    'contains' SP* '(' SP*
-        DocumentPath SP* ',' SP* Operand
-    SP* ')'
-Size <- 'size' SP* '(' SP* DocumentPath SP* ',' SP* ')'
+    'contains' MAYBE_SP '(' MAYBE_SP
+        DocumentPath MAYBE_SP ',' MAYBE_SP Operand
+    MAYBE_SP ')'
 
-Condition <- Disjunct (SP+ OR SP+ Disjunct)*
-Disjunct <- Conjunct (SP+ AND SP+ Conjunct)*
+Condition <- Disjunct (SP OR SP Disjunct)*
+Disjunct <- Conjunct (SP AND SP Conjunct)*
 Conjunct <-
-    'NOT' SP+ Condition
-    / '(' SP* Condition SP* ')'
-    / Function
+    'NOT' SP BooleanExpression
+    / '(' MAYBE_SP BooleanExpression MAYBE_SP ')'
+    / BooleanExpression
+
+BooleanExpression <-
+      FunctionReturningBool
     / Range
     / Membership
     / Contains
@@ -62,5 +65,6 @@ Conjunct <-
 AND <- 'AND' / 'and'
 OR <- 'OR' / 'or'
 
-SP <- ' '
+MAYBE_SP <- ' '*
+SP <- ' '+
 END <- !.
