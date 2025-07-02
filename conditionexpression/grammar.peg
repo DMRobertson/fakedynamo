@@ -1,24 +1,22 @@
 package conditionexpression
 
-type parser Peg {
+type Parser Peg {
 
 }
 
 ConditionExpression <- SPACING Condition SPACING END
 
-Condition <- AtomicCondition / BooleanOperation
+Condition
+ <- '(' SPACING Condition SPACING ')'
+  / 'NOT' SPACING Condition
+  / AtomicCondition (SPACING 'AND' SPACING Condition)+
+  / AtomicCondition (SPACING 'OR' SPACING Condition)*
 
 AtomicCondition
  <- Comparison
 #  / Membership
   / Range
   / Function
-  / '(' SPACING Condition SPACING ')'
-  /
-
-BooleanOperation
- <- Condition SPACING 'AND' SPACING Condition
-  / Condition SPACING 'OR'  SPACING Condition
 
 Comparison <-
     (AttributeName/AttributeRef)
@@ -31,16 +29,24 @@ Range <-
     (AttributeName/AttributeRef) SPACING
     'BETWEEN' SPACING ValueRef SPACING 'AND' SPACING ValueRef
 
-Function <-
-  BeginsWith
+Function <- BeginsWith / AttributeExists / AttributeNotExists
 
 BeginsWith <-
     'begins_with' SPACING '(' SPACING
-    (AttributeName/AttributeRef) SPACING ',' SPACING
+    Attribute SPACING ',' SPACING
     ValueRef SPACING ')'
+
+AttributeExists
+ <- 'attribute_exists'     SPACING '(' SPACING Attribute SPACING ')'
+
+AttributeNotExists
+ <- 'attribute_not_exists' SPACING '(' SPACING Attribute SPACING ')'
 
 AttributeName <- [a-zA-Z0-9]+
 AttributeRef <- '#' [a-zA-Z0-9]+
+
+Attribute <- (AttributeName/AttributeRef) ('.' Attribute)*
+
 ValueRef <- ':' [a-zA-Z0-9]+
 
 SPACING <- ' '*

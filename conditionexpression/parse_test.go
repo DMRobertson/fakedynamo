@@ -14,7 +14,7 @@ func TestParser_Parse(t *testing.T) {
 		// Key condition expressions
 		// From https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_Query.html#DDB-Query-request-KeyConditionExpression
 		"partitionKeyName = :partitionkeyval",
-		// "partitionKeyName = :partitionkeyval AND sortKeyName = :sortkeyval",
+		"partitionKeyName = :partitionkeyval AND sortKeyName = :sortkeyval",
 		"sortKeyName = :sortkeyval",
 		"sortKeyName < :sortkeyval",
 		"sortKeyName <= :sortkeyval",
@@ -26,8 +26,8 @@ func TestParser_Parse(t *testing.T) {
 		"begins_with ( sortKeyName, :sortkeyval )",
 		// Generic condition expressions
 		// From https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.OperatorsAndFunctions.html
-		// "attribute_exists (#Pictures.#SideView)",
-		// "attribute_not_exists (Manufacturer)",
+		"attribute_exists (#Pictures.#SideView)",
+		"attribute_not_exists (Manufacturer)",
 		// "attribute_type (ProductReviews.FiveStar, :v_sub)",
 		// "begins_with (Pictures.FrontView, :v_sub)",
 		// "contains (Color, :v_sub)",
@@ -45,8 +45,10 @@ func TestParser_Parse(t *testing.T) {
 
 	for _, expr := range examples {
 		t.Run(expr, func(t *testing.T) {
-			_, err := conditionexpression.Parse(expr)
-			assert.NoError(t, err)
+			p, err := conditionexpression.Parse(expr)
+			if !assert.NoError(t, err) {
+				p.PrintSyntaxTree()
+			}
 		})
 	}
 }

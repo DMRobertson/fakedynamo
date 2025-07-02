@@ -9,17 +9,19 @@ package conditionexpression
 
 //go:generate peg grammar.peg
 
-func Parse(s string) (string, error) {
-	p := &parser{
+func Parse(s string) (*Parser, error) {
+	p := &Parser{
 		Buffer: s,
 		Pretty: true,
 	}
-	_ = p.Init()
-
-	if err := p.Parse(); err != nil {
-		return "", err
+	err := p.Init()
+	if err != nil {
+		return p, err
 	}
 
-	p.PrintSyntaxTree()
-	return p.SprintSyntaxTree(), nil
+	if err = p.Parse(); err != nil {
+		return p, err
+	}
+
+	return p, nil
 }
