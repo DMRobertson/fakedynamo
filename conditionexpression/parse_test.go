@@ -4,7 +4,9 @@ import (
 	"testing"
 
 	"github.com/DMRobertson/fakedynamo/conditionexpression"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestParser_Parse(t *testing.T) {
@@ -43,10 +45,56 @@ func TestParser_Parse(t *testing.T) {
 
 	for _, expr := range examples {
 		t.Run(expr, func(t *testing.T) {
-			p, err := conditionexpression.Parse(expr)
-			if !assert.NoError(t, err) {
-				p.PrintSyntaxTree()
-			}
+			_, err := conditionexpression.Parse(expr)
+			assert.NoError(t, err)
 		})
 	}
+}
+
+func TestEvaluate(t *testing.T) {
+	type TestCase struct {
+		Condition string
+		Item      map[string]*dynamodb.AttributeValue
+		Names     map[string]*string
+		Values    map[string]*dynamodb.AttributeValue
+
+		ExpectedResult bool
+	}
+
+	testCases := []TestCase{
+		{
+			Condition: "partitionKeyName = :partitionkeyval",
+			Item: map[string]*dynamodb.AttributeValue{
+				"partitionKeyName": {S: ptr("foo")},
+			},
+			Values: map[string]*dynamodb.AttributeValue{
+				":partitionkeyval": {S: ptr("foo")},
+			},
+			ExpectedResult: true,
+		},
+		{
+			Condition: "partitionKeyName = :partitionkeyval",
+			Item: map[string]*dynamodb.AttributeValue{
+				"partitionKeyName": {S: ptr("bar")},
+			},
+			Values: map[string]*dynamodb.AttributeValue{
+				":partitionkeyval": {S: ptr("foo")},
+			},
+			ExpectedResult: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.Condition, func(t *testing.T) {
+			expr, err := conditionexpression.Parse(tc.Condition)
+			require.NoError(t, err)
+			result, err := expr.Evaluate(tc.Item, tc.Names, tc.Values)
+			require.NoError(t, err)
+			assert.Equal(t, tc.ExpectedResult, result)
+		})
+	}
+}
+
+func ptr[T any](v T) *T {
+	return &v
 }

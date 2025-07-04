@@ -1,6 +1,6 @@
 package conditionexpression
 
-type Parser Peg {
+type parser Peg {
 
 }
 
@@ -51,11 +51,12 @@ Contains <-
 Condition <- Disjunct (SP OR SP Disjunct)*
 Disjunct <- Conjunct (SP AND SP Conjunct)*
 Conjunct <-
-    'NOT' SP BooleanExpression
-    / '(' MAYBE_SP BooleanExpression MAYBE_SP ')'
-    / BooleanExpression
+      Negation
+    / '(' MAYBE_SP BooleanAtom MAYBE_SP ')'
+    / BooleanAtom
+Negation <- 'NOT' SP BooleanAtom
 
-BooleanExpression <-
+BooleanAtom <-
       FunctionReturningBool
     / Range
     / Membership

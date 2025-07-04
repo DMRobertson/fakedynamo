@@ -41,7 +41,8 @@ const (
 	ruleCondition
 	ruleDisjunct
 	ruleConjunct
-	ruleBooleanExpression
+	ruleNegation
+	ruleBooleanAtom
 	ruleAND
 	ruleOR
 	ruleMAYBE_SP
@@ -74,7 +75,8 @@ var rul3s = [...]string{
 	"Condition",
 	"Disjunct",
 	"Conjunct",
-	"BooleanExpression",
+	"Negation",
+	"BooleanAtom",
 	"AND",
 	"OR",
 	"MAYBE_SP",
@@ -191,21 +193,21 @@ func (t *tokens32) Tokens() []token32 {
 	return t.tree
 }
 
-type Parser struct {
+type parser struct {
 	Buffer string
 	buffer []rune
-	rules  [30]func() bool
+	rules  [31]func() bool
 	parse  func(rule ...int) error
 	reset  func()
 	Pretty bool
 	tokens32
 }
 
-func (p *Parser) Parse(rule ...int) error {
+func (p *parser) Parse(rule ...int) error {
 	return p.parse(rule...)
 }
 
-func (p *Parser) Reset() {
+func (p *parser) Reset() {
 	p.reset()
 }
 
@@ -241,7 +243,7 @@ search:
 }
 
 type parseError struct {
-	p   *Parser
+	p   *parser
 	max token32
 }
 
@@ -269,7 +271,7 @@ func (e *parseError) Error() string {
 	return err
 }
 
-func (p *Parser) PrintSyntaxTree() {
+func (p *parser) PrintSyntaxTree() {
 	if p.Pretty {
 		p.tokens32.PrettyPrintSyntaxTree(p.Buffer)
 	} else {
@@ -277,30 +279,30 @@ func (p *Parser) PrintSyntaxTree() {
 	}
 }
 
-func (p *Parser) WriteSyntaxTree(w io.Writer) {
+func (p *parser) WriteSyntaxTree(w io.Writer) {
 	p.tokens32.WriteSyntaxTree(w, p.Buffer)
 }
 
-func (p *Parser) SprintSyntaxTree() string {
+func (p *parser) SprintSyntaxTree() string {
 	var bldr strings.Builder
 	p.WriteSyntaxTree(&bldr)
 	return bldr.String()
 }
 
-func Pretty(pretty bool) func(*Parser) error {
-	return func(p *Parser) error {
+func Pretty(pretty bool) func(*parser) error {
+	return func(p *parser) error {
 		p.Pretty = pretty
 		return nil
 	}
 }
 
-func Size(size int) func(*Parser) error {
-	return func(p *Parser) error {
+func Size(size int) func(*parser) error {
+	return func(p *parser) error {
 		p.tokens32 = tokens32{tree: make([]token32, 0, size)}
 		return nil
 	}
 }
-func (p *Parser) Init(options ...func(*Parser) error) error {
+func (p *parser) Init(options ...func(*parser) error) error {
 	var (
 		max                  token32
 		position, tokenIndex uint32
@@ -1630,29 +1632,14 @@ func (p *Parser) Init(options ...func(*Parser) error) error {
 			position, tokenIndex = position93, tokenIndex93
 			return false
 		},
-		/* 22 Conjunct <- <(('N' 'O' 'T' SP BooleanExpression) / ('(' MAYBE_SP BooleanExpression MAYBE_SP ')') / BooleanExpression)> */
+		/* 22 Conjunct <- <(Negation / ('(' MAYBE_SP BooleanAtom MAYBE_SP ')') / BooleanAtom)> */
 		func() bool {
 			position97, tokenIndex97 := position, tokenIndex
 			{
 				position98 := position
 				{
 					position99, tokenIndex99 := position, tokenIndex
-					if buffer[position] != rune('N') {
-						goto l100
-					}
-					position++
-					if buffer[position] != rune('O') {
-						goto l100
-					}
-					position++
-					if buffer[position] != rune('T') {
-						goto l100
-					}
-					position++
-					if !_rules[ruleSP]() {
-						goto l100
-					}
-					if !_rules[ruleBooleanExpression]() {
+					if !_rules[ruleNegation]() {
 						goto l100
 					}
 					goto l99
@@ -1665,7 +1652,7 @@ func (p *Parser) Init(options ...func(*Parser) error) error {
 					if !_rules[ruleMAYBE_SP]() {
 						goto l101
 					}
-					if !_rules[ruleBooleanExpression]() {
+					if !_rules[ruleBooleanAtom]() {
 						goto l101
 					}
 					if !_rules[ruleMAYBE_SP]() {
@@ -1678,7 +1665,7 @@ func (p *Parser) Init(options ...func(*Parser) error) error {
 					goto l99
 				l101:
 					position, tokenIndex = position99, tokenIndex99
-					if !_rules[ruleBooleanExpression]() {
+					if !_rules[ruleBooleanAtom]() {
 						goto l97
 					}
 				}
@@ -1690,192 +1677,222 @@ func (p *Parser) Init(options ...func(*Parser) error) error {
 			position, tokenIndex = position97, tokenIndex97
 			return false
 		},
-		/* 23 BooleanExpression <- <(FunctionReturningBool / Range / Membership / Contains / Comparison)> */
+		/* 23 Negation <- <('N' 'O' 'T' SP BooleanAtom)> */
 		func() bool {
 			position102, tokenIndex102 := position, tokenIndex
 			{
 				position103 := position
-				{
-					position104, tokenIndex104 := position, tokenIndex
-					if !_rules[ruleFunctionReturningBool]() {
-						goto l105
-					}
-					goto l104
-				l105:
-					position, tokenIndex = position104, tokenIndex104
-					if !_rules[ruleRange]() {
-						goto l106
-					}
-					goto l104
-				l106:
-					position, tokenIndex = position104, tokenIndex104
-					if !_rules[ruleMembership]() {
-						goto l107
-					}
-					goto l104
-				l107:
-					position, tokenIndex = position104, tokenIndex104
-					if !_rules[ruleContains]() {
-						goto l108
-					}
-					goto l104
-				l108:
-					position, tokenIndex = position104, tokenIndex104
-					if !_rules[ruleComparison]() {
-						goto l102
-					}
+				if buffer[position] != rune('N') {
+					goto l102
 				}
-			l104:
-				add(ruleBooleanExpression, position103)
+				position++
+				if buffer[position] != rune('O') {
+					goto l102
+				}
+				position++
+				if buffer[position] != rune('T') {
+					goto l102
+				}
+				position++
+				if !_rules[ruleSP]() {
+					goto l102
+				}
+				if !_rules[ruleBooleanAtom]() {
+					goto l102
+				}
+				add(ruleNegation, position103)
 			}
 			return true
 		l102:
 			position, tokenIndex = position102, tokenIndex102
 			return false
 		},
-		/* 24 AND <- <(('A' 'N' 'D') / ('a' 'n' 'd'))> */
+		/* 24 BooleanAtom <- <(FunctionReturningBool / Range / Membership / Contains / Comparison)> */
 		func() bool {
-			position109, tokenIndex109 := position, tokenIndex
+			position104, tokenIndex104 := position, tokenIndex
 			{
-				position110 := position
+				position105 := position
 				{
-					position111, tokenIndex111 := position, tokenIndex
+					position106, tokenIndex106 := position, tokenIndex
+					if !_rules[ruleFunctionReturningBool]() {
+						goto l107
+					}
+					goto l106
+				l107:
+					position, tokenIndex = position106, tokenIndex106
+					if !_rules[ruleRange]() {
+						goto l108
+					}
+					goto l106
+				l108:
+					position, tokenIndex = position106, tokenIndex106
+					if !_rules[ruleMembership]() {
+						goto l109
+					}
+					goto l106
+				l109:
+					position, tokenIndex = position106, tokenIndex106
+					if !_rules[ruleContains]() {
+						goto l110
+					}
+					goto l106
+				l110:
+					position, tokenIndex = position106, tokenIndex106
+					if !_rules[ruleComparison]() {
+						goto l104
+					}
+				}
+			l106:
+				add(ruleBooleanAtom, position105)
+			}
+			return true
+		l104:
+			position, tokenIndex = position104, tokenIndex104
+			return false
+		},
+		/* 25 AND <- <(('A' 'N' 'D') / ('a' 'n' 'd'))> */
+		func() bool {
+			position111, tokenIndex111 := position, tokenIndex
+			{
+				position112 := position
+				{
+					position113, tokenIndex113 := position, tokenIndex
 					if buffer[position] != rune('A') {
-						goto l112
+						goto l114
 					}
 					position++
 					if buffer[position] != rune('N') {
-						goto l112
+						goto l114
 					}
 					position++
 					if buffer[position] != rune('D') {
-						goto l112
+						goto l114
 					}
 					position++
-					goto l111
-				l112:
-					position, tokenIndex = position111, tokenIndex111
+					goto l113
+				l114:
+					position, tokenIndex = position113, tokenIndex113
 					if buffer[position] != rune('a') {
-						goto l109
+						goto l111
 					}
 					position++
 					if buffer[position] != rune('n') {
-						goto l109
+						goto l111
 					}
 					position++
 					if buffer[position] != rune('d') {
-						goto l109
+						goto l111
 					}
 					position++
 				}
-			l111:
-				add(ruleAND, position110)
+			l113:
+				add(ruleAND, position112)
 			}
 			return true
-		l109:
-			position, tokenIndex = position109, tokenIndex109
+		l111:
+			position, tokenIndex = position111, tokenIndex111
 			return false
 		},
-		/* 25 OR <- <(('O' 'R') / ('o' 'r'))> */
+		/* 26 OR <- <(('O' 'R') / ('o' 'r'))> */
 		func() bool {
-			position113, tokenIndex113 := position, tokenIndex
+			position115, tokenIndex115 := position, tokenIndex
 			{
-				position114 := position
+				position116 := position
 				{
-					position115, tokenIndex115 := position, tokenIndex
+					position117, tokenIndex117 := position, tokenIndex
 					if buffer[position] != rune('O') {
-						goto l116
+						goto l118
 					}
 					position++
 					if buffer[position] != rune('R') {
-						goto l116
+						goto l118
 					}
 					position++
-					goto l115
-				l116:
-					position, tokenIndex = position115, tokenIndex115
+					goto l117
+				l118:
+					position, tokenIndex = position117, tokenIndex117
 					if buffer[position] != rune('o') {
-						goto l113
+						goto l115
 					}
 					position++
 					if buffer[position] != rune('r') {
-						goto l113
+						goto l115
 					}
 					position++
 				}
-			l115:
-				add(ruleOR, position114)
+			l117:
+				add(ruleOR, position116)
 			}
 			return true
-		l113:
-			position, tokenIndex = position113, tokenIndex113
+		l115:
+			position, tokenIndex = position115, tokenIndex115
 			return false
 		},
-		/* 26 MAYBE_SP <- <' '*> */
+		/* 27 MAYBE_SP <- <' '*> */
 		func() bool {
 			{
-				position118 := position
-			l119:
+				position120 := position
+			l121:
 				{
-					position120, tokenIndex120 := position, tokenIndex
+					position122, tokenIndex122 := position, tokenIndex
 					if buffer[position] != rune(' ') {
-						goto l120
+						goto l122
 					}
 					position++
-					goto l119
-				l120:
-					position, tokenIndex = position120, tokenIndex120
+					goto l121
+				l122:
+					position, tokenIndex = position122, tokenIndex122
 				}
-				add(ruleMAYBE_SP, position118)
+				add(ruleMAYBE_SP, position120)
 			}
 			return true
 		},
-		/* 27 SP <- <' '+> */
+		/* 28 SP <- <' '+> */
 		func() bool {
-			position121, tokenIndex121 := position, tokenIndex
+			position123, tokenIndex123 := position, tokenIndex
 			{
-				position122 := position
+				position124 := position
 				if buffer[position] != rune(' ') {
-					goto l121
+					goto l123
 				}
 				position++
-			l123:
+			l125:
 				{
-					position124, tokenIndex124 := position, tokenIndex
+					position126, tokenIndex126 := position, tokenIndex
 					if buffer[position] != rune(' ') {
-						goto l124
+						goto l126
 					}
 					position++
-					goto l123
-				l124:
-					position, tokenIndex = position124, tokenIndex124
+					goto l125
+				l126:
+					position, tokenIndex = position126, tokenIndex126
 				}
-				add(ruleSP, position122)
+				add(ruleSP, position124)
 			}
 			return true
-		l121:
-			position, tokenIndex = position121, tokenIndex121
+		l123:
+			position, tokenIndex = position123, tokenIndex123
 			return false
 		},
-		/* 28 END <- <!.> */
+		/* 29 END <- <!.> */
 		func() bool {
-			position125, tokenIndex125 := position, tokenIndex
+			position127, tokenIndex127 := position, tokenIndex
 			{
-				position126 := position
+				position128 := position
 				{
-					position127, tokenIndex127 := position, tokenIndex
+					position129, tokenIndex129 := position, tokenIndex
 					if !matchDot() {
-						goto l127
+						goto l129
 					}
-					goto l125
-				l127:
-					position, tokenIndex = position127, tokenIndex127
+					goto l127
+				l129:
+					position, tokenIndex = position129, tokenIndex129
 				}
-				add(ruleEND, position126)
+				add(ruleEND, position128)
 			}
 			return true
-		l125:
-			position, tokenIndex = position125, tokenIndex125
+		l127:
+			position, tokenIndex = position127, tokenIndex127
 			return false
 		},
 	}
