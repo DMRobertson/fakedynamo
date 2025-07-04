@@ -18,6 +18,7 @@ func TestParser_Parse(t *testing.T) {
 		"partitionKeyName = :partitionkeyval",
 		"ForumName = :name",
 		"partitionKeyName = :partitionkeyval AND sortKeyName = :sortkeyval",
+		"partitionKeyName = :partitionkeyval OR sortKeyName = :sortkeyval",
 		"ForumName = :name and Subject = :sub",
 		"sortKeyName = :sortkeyval",
 		"sortKeyName < :sortkeyval",
@@ -27,11 +28,11 @@ func TestParser_Parse(t *testing.T) {
 		"#S = :myval",
 		"sortKeyName BETWEEN :sortkeyval1 AND :sortkeyval2",
 		"begins_with ( sortKeyName, :sortkeyval )",
-
 		"Id = :id and begins_with(ReplyDateTime, :dt)",
+		"#Color IN (:red, :green, :blue)",
 		// Generic condition expressions
 		// From https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.OperatorsAndFunctions.html
-		"attribute_exists (#Pictures.#SideView)",
+		"attribute_exists (#Pictures[0].#SideView)",
 		"attribute_not_exists (Manufacturer)",
 		"attribute_type (ProductReviews.FiveStar, :v_sub)",
 		"begins_with (Pictures.FrontView, :v_sub)",
