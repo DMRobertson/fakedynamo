@@ -64,7 +64,7 @@ func TestEvaluate(t *testing.T) {
 
 	testCases := []TestCase{
 		{
-			Name:      "equality, result true",
+			Name:      "string equality, result true",
 			Condition: "partitionKeyName = :partitionkeyval",
 			Item: map[string]*dynamodb.AttributeValue{
 				"partitionKeyName": {S: ptr("foo")},
@@ -75,7 +75,7 @@ func TestEvaluate(t *testing.T) {
 			ExpectedResult: true,
 		},
 		{
-			Name:      "equality, result false",
+			Name:      "string equality, result false",
 			Condition: "partitionKeyName = :partitionkeyval",
 			Item: map[string]*dynamodb.AttributeValue{
 				"partitionKeyName": {S: ptr("bar")},
@@ -110,6 +110,90 @@ func TestEvaluate(t *testing.T) {
 				":sortkeyval":      {N: ptr("22")},
 			},
 			ExpectedResult: false,
+		},
+		{
+			Name:      "byte less than, result false",
+			Condition: "sortKeyName < :sortkeyval",
+			Item: map[string]*dynamodb.AttributeValue{
+				"sortKeyName": {B: []byte("zzz")},
+			},
+			Values: map[string]*dynamodb.AttributeValue{
+				":sortkeyval": {B: []byte("aaa")},
+			},
+			ExpectedResult: false,
+		},
+		{
+			Name:      "numerical less than equal, result false",
+			Condition: "sortKeyName <= :sortkeyval",
+			Item: map[string]*dynamodb.AttributeValue{
+				"sortKeyName": {N: ptr("10")},
+			},
+			Values: map[string]*dynamodb.AttributeValue{
+				":sortkeyval": {N: ptr("9")},
+			},
+			ExpectedResult: false,
+		},
+		{
+			Name:      "string not equal, result true",
+			Condition: "sortKeyName <> :sortkeyval",
+			Item: map[string]*dynamodb.AttributeValue{
+				"sortKeyName": {S: ptr("a")},
+			},
+			Values: map[string]*dynamodb.AttributeValue{
+				":sortkeyval": {S: ptr("A")},
+			},
+			ExpectedResult: true,
+		},
+		{
+			Name:      "string greater or equal, result true",
+			Condition: "sortKeyName >= :sortkeyval",
+			Item: map[string]*dynamodb.AttributeValue{
+				"sortKeyName": {S: ptr("a")},
+			},
+			Values: map[string]*dynamodb.AttributeValue{
+				":sortkeyval": {S: ptr("a")},
+			},
+			ExpectedResult: true,
+		},
+		{
+			Name:      "string greater, result true",
+			Condition: "sortKeyName >= :sortkeyval",
+			Item: map[string]*dynamodb.AttributeValue{
+				"sortKeyName": {S: ptr("aardvark")},
+			},
+			Values: map[string]*dynamodb.AttributeValue{
+				":sortkeyval": {S: ptr("a")},
+			},
+			ExpectedResult: true,
+		},
+		{
+			Name: "string equality using attr name, result " +
+				"false",
+			Condition: "#S = :myval",
+			Item: map[string]*dynamodb.AttributeValue{
+				"foo": {S: ptr("something else")},
+			},
+			Names: map[string]*string{
+				"#S": ptr("foo"),
+			},
+			Values: map[string]*dynamodb.AttributeValue{
+				":myval": {S: ptr("foobar")},
+			},
+			ExpectedResult: false,
+		},
+		{
+			Name:      "string equality using attr name, result true",
+			Condition: "#S = :myval",
+			Item: map[string]*dynamodb.AttributeValue{
+				"foo": {S: ptr("foobar")},
+			},
+			Names: map[string]*string{
+				"#S": ptr("foo"),
+			},
+			Values: map[string]*dynamodb.AttributeValue{
+				":myval": {S: ptr("foobar")},
+			},
+			ExpectedResult: true,
 		},
 	}
 

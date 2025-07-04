@@ -16,6 +16,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
+	"github.com/shopspring/decimal"
 )
 
 //go:generate peg grammar.peg
@@ -65,31 +66,6 @@ func dropBoringTokens(referer **node32) {
 func (e Expression) PrettyPrint(w io.Writer) {
 	e.ast.PrettyPrint(w, e.buffer)
 }
-
-// func (e *Expression) Evaluate(item map[string]*dynamodb.AttributeValue) bool {
-// 	stack := []*node32{e.ast}
-// 	for len(stack) > 0 {
-// 		node := stack[len(stack)-1]
-// 		for range len(stack) {
-// 			fmt.Print(" ")
-// 		}
-// 		fmt.Println(node, e.buffer[node.begin:node.end])
-// 		if node.up != nil {
-// 			stack = append(stack, node.up)
-// 		} else if node.next != nil {
-// 			stack[len(stack)-1] = node.next
-// 		} else {
-// 			// pop children until head has next or stack empty
-// 			for len(stack) > 0 && stack[len(stack)-1].next == nil {
-// 				stack = stack[:len(stack)-1]
-// 			}
-// 			if len(stack) > 0 {
-// 				stack[len(stack)-1] = stack[len(stack)-1].next
-// 			}
-// 		}
-// 	}
-// 	return true
-// }
 
 func (e Expression) Evaluate(
 	item map[string]*dynamodb.AttributeValue,
@@ -211,7 +187,12 @@ func (e Expression) compare(val1 dynamodb.AttributeValue, operator string, val2 
 		comparison := strings.Compare(*val1.S, *val2.S)
 		return compare(operator, comparison), nil
 	case expression.Number:
-		comparison := strings.Compare(*val1.N, *val2.N)
+		lhs, err1 := decimal.NewFromString(*val1.N)
+		rhs, err2 := decimal.NewFromString(*val2.N)
+		if err := errors.Join(err1, err2); err != nil {
+			return false, fmt.Errorf("failed to parse number(s): %w", err)
+		}
+		comparison := lhs.Compare(rhs)
 		return compare(operator, comparison), nil
 	case expression.Binary:
 		comparison := bytes.Compare(val1.B, val2.B)
