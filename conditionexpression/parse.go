@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -136,8 +137,33 @@ func (e Expression) evaluate(
 			return nil, fmt.Errorf("no such value '%s'", key)
 		}
 		return val, nil
-	case ruleRange,
-		ruleMembership,
+	case ruleRange:
+		children := readChildren(node, 3)
+		probe, lower, upper := children[0], children[1], children[2]
+		probeVal, err1 := e.evaluate(probe, item, names, values)
+		lowerVal, err2 := e.evaluate(lower, item, names, values)
+		upperVal, err3 := e.evaluate(upper, item, names, values)
+		if err := errors.Join(err1, err2, err3); err != nil {
+			return nil, err
+		}
+
+		probeType := attrType(*probeVal)
+		lowerType := attrType(*lowerVal)
+		upperType := attrType(*upperVal)
+		if probeType != lowerType || probeType != upperType {
+			return nil, fmt.Errorf("incompatible types in BETWEEN operation: %s, %s and %s", probeType, lowerType, upperType)
+		}
+		if !slices.Contains(dynamodb.ScalarAttributeType_Values(), string(probeType)) {
+			return nil, fmt.Errorf("cannot compare values of type %s", probeType)
+		}
+
+		aboveLower, err1 := e.compare(*lowerVal, "<=", *probeVal)
+		belowUpper, err2 := e.compare(*probeVal, "<=", *upperVal)
+		if err := errors.Join(err1, err2); err != nil {
+			return nil, err
+		}
+		return &dynamodb.AttributeValue{BOOL: ptr(aboveLower && belowUpper)}, nil
+	case ruleMembership,
 		ruleFunctionReturningBool,
 		ruleAttributeExists,
 		ruleAttributeNotExists,

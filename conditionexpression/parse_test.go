@@ -195,6 +195,30 @@ func TestEvaluate(t *testing.T) {
 			},
 			ExpectedResult: true,
 		},
+		{
+			Name:      "between, result false",
+			Condition: "sortKeyName BETWEEN :sortkeyval1 AND :sortkeyval2",
+			Item: map[string]*dynamodb.AttributeValue{
+				"sortKeyName": {S: ptr("m")},
+			},
+			Values: map[string]*dynamodb.AttributeValue{
+				":sortkeyval1": {S: ptr("a")},
+				":sortkeyval2": {S: ptr("b")},
+			},
+			ExpectedResult: false,
+		},
+		{
+			Name:      "between, result true",
+			Condition: "sortKeyName BETWEEN :sortkeyval1 AND :sortkeyval2",
+			Item: map[string]*dynamodb.AttributeValue{
+				"sortKeyName": {N: ptr("456")},
+			},
+			Values: map[string]*dynamodb.AttributeValue{
+				":sortkeyval1": {N: ptr("123")},
+				":sortkeyval2": {N: ptr("789")},
+			},
+			ExpectedResult: true,
+		},
 	}
 
 	for _, tc := range testCases {
