@@ -53,6 +53,7 @@ func TestParser_Parse(t *testing.T) {
 
 func TestEvaluate(t *testing.T) {
 	type TestCase struct {
+		Name      string
 		Condition string
 		Item      map[string]*dynamodb.AttributeValue
 		Names     map[string]*string
@@ -63,6 +64,7 @@ func TestEvaluate(t *testing.T) {
 
 	testCases := []TestCase{
 		{
+			Name:      "equality, result true",
 			Condition: "partitionKeyName = :partitionkeyval",
 			Item: map[string]*dynamodb.AttributeValue{
 				"partitionKeyName": {S: ptr("foo")},
@@ -73,6 +75,7 @@ func TestEvaluate(t *testing.T) {
 			ExpectedResult: true,
 		},
 		{
+			Name:      "equality, result false",
 			Condition: "partitionKeyName = :partitionkeyval",
 			Item: map[string]*dynamodb.AttributeValue{
 				"partitionKeyName": {S: ptr("bar")},
@@ -82,10 +85,36 @@ func TestEvaluate(t *testing.T) {
 			},
 			ExpectedResult: false,
 		},
+		{
+			Name:      "conjunction, result true",
+			Condition: "partitionKeyName = :partitionkeyval AND sortKeyName = :sortkeyval",
+			Item: map[string]*dynamodb.AttributeValue{
+				"partitionKeyName": {N: ptr("1")},
+				"sortKeyName":      {N: ptr("2")},
+			},
+			Values: map[string]*dynamodb.AttributeValue{
+				":partitionkeyval": {N: ptr("1")},
+				":sortkeyval":      {N: ptr("2")},
+			},
+			ExpectedResult: true,
+		},
+		{
+			Name:      "conjunction, result false",
+			Condition: "partitionKeyName = :partitionkeyval AND sortKeyName = :sortkeyval",
+			Item: map[string]*dynamodb.AttributeValue{
+				"partitionKeyName": {N: ptr("1")},
+				"sortKeyName":      {N: ptr("2")},
+			},
+			Values: map[string]*dynamodb.AttributeValue{
+				":partitionkeyval": {N: ptr("1")},
+				":sortkeyval":      {N: ptr("22")},
+			},
+			ExpectedResult: false,
+		},
 	}
 
 	for _, tc := range testCases {
-		t.Run(tc.Condition, func(t *testing.T) {
+		t.Run(tc.Name, func(t *testing.T) {
 			expr, err := conditionexpression.Parse(tc.Condition)
 			require.NoError(t, err)
 			result, err := expr.Evaluate(tc.Item, tc.Names, tc.Values)

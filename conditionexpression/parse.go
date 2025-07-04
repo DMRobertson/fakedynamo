@@ -40,7 +40,7 @@ func Parse(s string) (Expression, error) {
 	}
 
 	root := p.AST()
-	dropSpaces(&root)
+	dropBoringTokens(&root)
 	expr := Expression{
 		buffer: p.Buffer,
 		ast:    root,
@@ -49,19 +49,16 @@ func Parse(s string) (Expression, error) {
 	return expr, nil
 }
 
-func dropSpaces(referrer **node32) {
-	n := *referrer
-	switch n.pegRule {
-	case ruleSP, ruleMAYBE_SP:
-		// Drop this node and any children, replacing them with the next sibling.
-		*referrer = n.next
-	default:
-		if n.up != nil {
-			dropSpaces(&n.up)
+func dropBoringTokens(referer **node32) {
+	for n := *referer; n != nil; n = n.next {
+		switch n.pegRule {
+		case ruleSP, ruleMAYBE_SP, ruleAND:
+			// Drop this node and any children, replacing them with the next sibling.
+			(*referer) = n.next
+		default:
+			dropBoringTokens(&n.up)
+			referer = &n.next
 		}
-	}
-	if n.next != nil {
-		dropSpaces(&n.next)
 	}
 }
 
@@ -115,15 +112,24 @@ func (e Expression) evaluate(
 	if node == nil {
 		panic("should not happen!")
 	}
-	println(node.String())
 	switch node.pegRule {
 	case ruleConditionExpression,
-		ruleBooleanAtom,
-		ruleDisjunct,
-		ruleConjunct,
 		ruleCondition,
+		ruleBooleanAtom,
+		ruleConjunct,
 		ruleOperand:
 		return e.evaluate(node.up, item, names, values)
+	case ruleDisjunct:
+		children := readAllChildren(node)
+		result := true
+		for _, child := range children {
+			val, err := e.evaluate(child, item, names, values)
+			if err != nil {
+				return nil, err
+			}
+			result = result && *val.BOOL
+		}
+		return &dynamodb.AttributeValue{BOOL: &result}, nil
 	case ruleNegation:
 		result, err := e.evaluate(node.up, item, names, values)
 		if err != nil {
@@ -170,10 +176,9 @@ func (e Expression) evaluate(
 		ruleMapDereference,
 		ruleSize,
 		ruleComparator,
-		ruleAND,
 		ruleOR:
 		panic("don't think these should be evaluated")
-	case ruleUnknown, ruleMAYBE_SP, ruleSP, ruleEND:
+	case ruleUnknown, ruleMAYBE_SP, ruleSP, ruleEND, ruleAND:
 		// Pruned
 	default:
 	}
@@ -253,6 +258,16 @@ func readChildren(parent *node32, count int) []*node32 {
 	return out
 }
 
+func readAllChildren(parent *node32) []*node32 {
+	var children []*node32
+	node := parent.up
+	for node != nil {
+		children = append(children, node)
+		node = node.next
+	}
+	return children
+}
+
 func (e Expression) text(node *node32) string {
 	return e.buffer[node.begin:node.end]
 }
@@ -294,7 +309,6 @@ func (e Expression) walkDocumentPath(node *node32,
 	var exists bool
 
 	for node != nil {
-		println(node.String())
 		switch node.pegRule {
 		case ruleName:
 			switch node.up.pegRule {
