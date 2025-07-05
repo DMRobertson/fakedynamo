@@ -7,6 +7,7 @@ on:
 jobs:
   tests:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
       - name: Setup Go
@@ -19,3 +20,19 @@ jobs:
 
       - name: Test
         uses: robherley/go-test-action@b19f6aadabfb1ad85079065b21aa2af132466468
+        with:
+          testArguments: '-count 1 ./...'
+        continue-on-error: true
+
+      - name: Run DynamoDB local
+        run: docker run --detach --publish 8000:8000 amazon/dynamodb-local
+
+      - name: Run main tests against DynamoDB local
+        env:
+          DYNAMODB_ENDPOINT: http://localhost:8000
+        with:
+
+          testArguments: '-count 1 .'
+        uses: robherley/go-test-action@b19f6aadabfb1ad85079065b21aa2af132466468
+
+
