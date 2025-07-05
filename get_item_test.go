@@ -3,7 +3,6 @@ package fakedynamo_test
 import (
 	"testing"
 
-	"github.com/DMRobertson/fakedynamo"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -11,7 +10,7 @@ import (
 
 func TestDB_ValidationErrors_ReturnsValidationException_ForMissingRequiredFields(t *testing.T) {
 	t.Parallel()
-	db := fakedynamo.NewDB()
+	db := makeTestDB()
 	output, err := db.GetItem(&dynamodb.GetItemInput{})
 	assert.ErrorContains(t, err, "Key is a required field")
 	assert.ErrorContains(t, err, "TableName is a required field")
@@ -20,7 +19,7 @@ func TestDB_ValidationErrors_ReturnsValidationException_ForMissingRequiredFields
 
 func TestDB_ValidationErrors_ReturnsValidationException_NoSuchTable(t *testing.T) {
 	t.Parallel()
-	db := fakedynamo.NewDB()
+	db := makeTestDB()
 	output, err := db.GetItem(&dynamodb.GetItemInput{
 		Key:       map[string]*dynamodb.AttributeValue{},
 		TableName: ptr("blah"),
@@ -32,7 +31,7 @@ func TestDB_ValidationErrors_ReturnsValidationException_NoSuchTable(t *testing.T
 
 func TestDB_ValidationErrors_ReturnsValidation_ForNonPrimaryKeyFields(t *testing.T) {
 	t.Parallel()
-	db := fakedynamo.NewDB()
+	db := makeTestDB()
 	simpleTable, err := db.CreateTable(exampleCreateTableInputSimplePrimaryKey())
 	require.NoError(t, err)
 
@@ -63,7 +62,7 @@ func TestDB_ValidationErrors_ReturnsValidation_ForNonPrimaryKeyFields(t *testing
 
 func TestDB_GetItem_SimplePartitionKey_Success(t *testing.T) {
 	t.Parallel()
-	db := fakedynamo.NewDB()
+	db := makeTestDB()
 	tableOutput, err := db.CreateTable(exampleCreateTableInputSimplePrimaryKey())
 	require.NoError(t, err)
 
@@ -90,7 +89,7 @@ func TestDB_GetItem_SimplePartitionKey_Success(t *testing.T) {
 
 func TestDB_GetItem_CompositePartitionKey(t *testing.T) {
 	t.Parallel()
-	db := fakedynamo.NewDB()
+	db := makeTestDB()
 	tableOutput, err := db.CreateTable(exampleCreateTableInputCompositePrimaryKey())
 	require.NoError(t, err)
 

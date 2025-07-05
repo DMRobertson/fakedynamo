@@ -3,8 +3,8 @@ package fakedynamo_test
 import (
 	"testing"
 
-	"github.com/DMRobertson/fakedynamo"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -15,7 +15,7 @@ func Test_PutItem_ValidationErrors(t *testing.T) {
 	type testCase struct {
 		Name  string
 		Input dynamodb.PutItemInput
-		Setup func(*testing.T, *fakedynamo.DB, *testCase)
+		Setup func(*testing.T, dynamodbiface.DynamoDBAPI, *testCase)
 
 		ExpectErrorMessage string
 		ExpectErrorAs      error
@@ -110,7 +110,7 @@ func Test_PutItem_ValidationErrors(t *testing.T) {
 		},
 		{
 			Name: "Returns ValidationException when partition key is missing",
-			Setup: func(t *testing.T, db *fakedynamo.DB, tc *testCase) {
+			Setup: func(t *testing.T, db dynamodbiface.DynamoDBAPI, tc *testCase) {
 				_, err := db.CreateTable(exampleSimpleTableSpec)
 				require.NoError(t, err)
 			},
@@ -122,7 +122,7 @@ func Test_PutItem_ValidationErrors(t *testing.T) {
 		},
 		{
 			Name: "Returns ValidationException when sort key is missing",
-			Setup: func(t *testing.T, db *fakedynamo.DB, tc *testCase) {
+			Setup: func(t *testing.T, db dynamodbiface.DynamoDBAPI, tc *testCase) {
 				_, err := db.CreateTable(exampleCompositeTableSpec)
 				require.NoError(t, err)
 			},
@@ -134,7 +134,7 @@ func Test_PutItem_ValidationErrors(t *testing.T) {
 		},
 		{
 			Name: "Returns ValidationException on String key type mismatch",
-			Setup: func(t *testing.T, db *fakedynamo.DB, tc *testCase) {
+			Setup: func(t *testing.T, db dynamodbiface.DynamoDBAPI, tc *testCase) {
 				_, err := db.CreateTable(exampleSimpleTableSpec)
 				require.NoError(t, err)
 			},
@@ -148,7 +148,7 @@ func Test_PutItem_ValidationErrors(t *testing.T) {
 		},
 		{
 			Name: "Returns ValidationException on String key with empty value",
-			Setup: func(t *testing.T, db *fakedynamo.DB, tc *testCase) {
+			Setup: func(t *testing.T, db dynamodbiface.DynamoDBAPI, tc *testCase) {
 				_, err := db.CreateTable(exampleSimpleTableSpec)
 				require.NoError(t, err)
 			},
@@ -162,7 +162,7 @@ func Test_PutItem_ValidationErrors(t *testing.T) {
 		},
 		{
 			Name: "Returns ValidationException on Binary key type mismatch",
-			Setup: func(t *testing.T, db *fakedynamo.DB, tc *testCase) {
+			Setup: func(t *testing.T, db dynamodbiface.DynamoDBAPI, tc *testCase) {
 				_, err := db.CreateTable(exampleSimpleTableSpec)
 				require.NoError(t, err)
 			},
@@ -176,7 +176,7 @@ func Test_PutItem_ValidationErrors(t *testing.T) {
 		},
 		{
 			Name: "Returns ValidationException on Binary key with empty value",
-			Setup: func(t *testing.T, db *fakedynamo.DB, tc *testCase) {
+			Setup: func(t *testing.T, db dynamodbiface.DynamoDBAPI, tc *testCase) {
 				_, err := db.CreateTable(exampleSimpleTableSpec)
 				require.NoError(t, err)
 			},
@@ -190,7 +190,7 @@ func Test_PutItem_ValidationErrors(t *testing.T) {
 		},
 		{
 			Name: "Returns ValidationException on Number key type mismatch",
-			Setup: func(t *testing.T, db *fakedynamo.DB, tc *testCase) {
+			Setup: func(t *testing.T, db dynamodbiface.DynamoDBAPI, tc *testCase) {
 				_, err := db.CreateTable(exampleSimpleTableSpec)
 				require.NoError(t, err)
 			},
@@ -204,7 +204,7 @@ func Test_PutItem_ValidationErrors(t *testing.T) {
 		},
 		{
 			Name: "Returns ValidationException on Number key with empty value",
-			Setup: func(t *testing.T, db *fakedynamo.DB, tc *testCase) {
+			Setup: func(t *testing.T, db dynamodbiface.DynamoDBAPI, tc *testCase) {
 				_, err := db.CreateTable(exampleSimpleTableSpec)
 				require.NoError(t, err)
 			},
@@ -220,7 +220,7 @@ func Test_PutItem_ValidationErrors(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			db := fakedynamo.NewDB()
+			db := makeTestDB()
 			if tc.Setup != nil {
 				tc.Setup(t, db, &tc)
 			}
@@ -238,7 +238,7 @@ func Test_PutItem_ValidationErrors(t *testing.T) {
 func TestDB_PutItem_ReturnValues(t *testing.T) {
 	t.Parallel()
 
-	db := fakedynamo.NewDB()
+	db := makeTestDB()
 	tableOutput, err := db.CreateTable(exampleCreateTableInputSimplePrimaryKey())
 	require.NoError(t, err)
 

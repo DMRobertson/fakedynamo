@@ -3,7 +3,6 @@ package fakedynamo_test
 import (
 	"testing"
 
-	"github.com/DMRobertson/fakedynamo"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -11,7 +10,7 @@ import (
 
 func TestDB_DescribeTable_ReturnsErrorForMissingTable(t *testing.T) {
 	t.Parallel()
-	db := fakedynamo.NewDB()
+	db := makeTestDB()
 	result, err := db.DescribeTable(&dynamodb.DescribeTableInput{TableName: ptr("my-table")})
 	var expectedErr *dynamodb.ResourceNotFoundException
 	assert.ErrorAs(t, err, &expectedErr)
@@ -20,7 +19,7 @@ func TestDB_DescribeTable_ReturnsErrorForMissingTable(t *testing.T) {
 }
 func TestDB_DescribeTable_HappyPath(t *testing.T) {
 	t.Parallel()
-	db := fakedynamo.NewDB()
+	db := makeTestDB()
 	createInput := exampleCreateTableInputCompositePrimaryKey()
 	_, err := db.CreateTable(createInput)
 	require.NoError(t, err)

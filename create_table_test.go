@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/DMRobertson/fakedynamo"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/stretchr/testify/assert"
@@ -155,7 +154,7 @@ func TestDB_CreateTable_ValidationErrors(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			db := fakedynamo.NewDB()
+			db := makeTestDB()
 			result, err := db.CreateTable(&tc.Input)
 
 			assert.ErrorContains(t, err, tc.ExpectErrorMessage)
@@ -166,7 +165,7 @@ func TestDB_CreateTable_ValidationErrors(t *testing.T) {
 
 func TestDB_CreateTable_ErrorsWhenTableExists(t *testing.T) {
 	t.Parallel()
-	db := fakedynamo.NewDB()
+	db := makeTestDB()
 	input := dynamodb.CreateTableInput{
 		AttributeDefinitions: []*dynamodb.AttributeDefinition{{
 			AttributeName: ptr("Foo"),
@@ -247,7 +246,7 @@ func exampleCreateTableInputCompositePrimaryKey() *dynamodb.CreateTableInput {
 
 func TestDB_CreateTable_HappyPath(t *testing.T) {
 	t.Parallel()
-	db := fakedynamo.NewDB()
+	db := makeTestDB()
 	input := exampleCreateTableInputCompositePrimaryKey()
 	result, err := db.CreateTable(input)
 	assert.NoError(t, err)

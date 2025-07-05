@@ -5,7 +5,6 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/DMRobertson/fakedynamo"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -13,7 +12,7 @@ import (
 
 func TestDB_ListTables_ValidationErrors(t *testing.T) {
 	t.Parallel()
-	db := fakedynamo.NewDB()
+	db := makeTestDB()
 	result, err := db.ListTables(&dynamodb.ListTablesInput{Limit: ptr[int64](0)})
 	assert.ErrorContains(t, err, "Limit must be between 1 and 100")
 	assert.Nil(t, result)
@@ -25,7 +24,7 @@ func TestDB_ListTables_ValidationErrors(t *testing.T) {
 
 func TestDB_ListTables_DefaultLimitSize(t *testing.T) {
 	t.Parallel()
-	db := fakedynamo.NewDB()
+	db := makeTestDB()
 	for i := range 200 {
 		input := exampleCreateTableInputCompositePrimaryKey()
 		input.TableName = ptr(fmt.Sprintf("table-%d", i))
@@ -40,7 +39,7 @@ func TestDB_ListTables_DefaultLimitSize(t *testing.T) {
 
 func TestDB_ListTables_Pagination(t *testing.T) {
 	t.Parallel()
-	db := fakedynamo.NewDB()
+	db := makeTestDB()
 	expectedNames := make([]*string, 250)
 	for i := range expectedNames {
 		input := exampleCreateTableInputCompositePrimaryKey()
@@ -84,7 +83,7 @@ func TestDB_ListTables_Pagination(t *testing.T) {
 
 func TestDB_ListTablesPages(t *testing.T) {
 	t.Parallel()
-	db := fakedynamo.NewDB()
+	db := makeTestDB()
 	expectedNames := make([]*string, 250)
 	for i := range expectedNames {
 		input := exampleCreateTableInputCompositePrimaryKey()
