@@ -208,11 +208,35 @@ func (e Expression) evaluate(
 			return nil, err
 		}
 		return &dynamodb.AttributeValue{BOOL: &match}, nil
+	case ruleSize:
+		value, err := e.evaluate(node.up, item, names, values)
+		if err != nil {
+			return nil, err
+		}
+		var size int
+		switch {
+		case value.S != nil:
+			size = len(*value.S)
+		case value.B != nil:
+			size = len(value.B)
+		case value.SS != nil:
+			size = len(value.SS)
+		case value.NS != nil:
+			size = len(value.NS)
+		case value.BS != nil:
+			size = len(value.BS)
+		case value.L != nil:
+			size = len(value.L)
+		case value.M != nil:
+			size = len(value.M)
+		default:
+			return nil, fmt.Errorf("invalid type for size operator: %s", attrType(*value))
+		}
+		return &dynamodb.AttributeValue{N: ptr(strconv.Itoa(size))}, nil
 	case ruleExpressionAttributeName,
 		ruleRawAttribute,
 		ruleName,
 		ruleListDereference,
-		ruleSize,
 		ruleComparator,
 		ruleOR:
 		panic("don't think these should be evaluated here")

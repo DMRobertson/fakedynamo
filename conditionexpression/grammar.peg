@@ -51,9 +51,9 @@ Condition <- Disjunct (SP OR SP Disjunct)*
 Disjunct <- Conjunct (SP AND SP Conjunct)*
 Conjunct <-
       Negation
-    / '(' MAYBE_SP BooleanAtom MAYBE_SP ')'
+    / '(' MAYBE_SP Condition MAYBE_SP ')'
     / BooleanAtom
-Negation <- 'NOT' SP BooleanAtom
+Negation <- 'NOT' SP Condition
 
 BooleanAtom <-
       FunctionReturningBool

@@ -41,6 +41,7 @@ func TestParser_Parse(t *testing.T) {
 		"size (Color) < :v_sub",
 		"size(ProductReviews.OneStar) > :v_sub",
 		"contains(Color, :c) and Price <= :p",
+		"NOT (Aaa = :a OR #B = :b)",
 	}
 
 	for _, expr := range examples {

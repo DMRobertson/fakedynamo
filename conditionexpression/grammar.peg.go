@@ -1615,7 +1615,7 @@ func (p *parser) Init(options ...func(*parser) error) error {
 			position, tokenIndex = position91, tokenIndex91
 			return false
 		},
-		/* 21 Conjunct <- <(Negation / ('(' MAYBE_SP BooleanAtom MAYBE_SP ')') / BooleanAtom)> */
+		/* 21 Conjunct <- <(Negation / ('(' MAYBE_SP Condition MAYBE_SP ')') / BooleanAtom)> */
 		func() bool {
 			position95, tokenIndex95 := position, tokenIndex
 			{
@@ -1635,7 +1635,7 @@ func (p *parser) Init(options ...func(*parser) error) error {
 					if !_rules[ruleMAYBE_SP]() {
 						goto l99
 					}
-					if !_rules[ruleBooleanAtom]() {
+					if !_rules[ruleCondition]() {
 						goto l99
 					}
 					if !_rules[ruleMAYBE_SP]() {
@@ -1660,7 +1660,7 @@ func (p *parser) Init(options ...func(*parser) error) error {
 			position, tokenIndex = position95, tokenIndex95
 			return false
 		},
-		/* 22 Negation <- <('N' 'O' 'T' SP BooleanAtom)> */
+		/* 22 Negation <- <('N' 'O' 'T' SP Condition)> */
 		func() bool {
 			position100, tokenIndex100 := position, tokenIndex
 			{
@@ -1680,7 +1680,7 @@ func (p *parser) Init(options ...func(*parser) error) error {
 				if !_rules[ruleSP]() {
 					goto l100
 				}
-				if !_rules[ruleBooleanAtom]() {
+				if !_rules[ruleCondition]() {
 					goto l100
 				}
 				add(ruleNegation, position101)

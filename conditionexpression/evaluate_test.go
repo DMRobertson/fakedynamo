@@ -433,12 +433,29 @@ func TestExpression_Evaluate(t *testing.T) {
 			ExpectedResult: true,
 		},
 		{
-			Name: "size of string, result true",
+			Name:      "size of string, result true",
+			Condition: "size (Brand) <= :v_sub",
+			Item: map[string]*dynamodb.AttributeValue{
+				"Brand": {S: ptr("abcdefghijklmnop")},
+			},
+			Values: map[string]*dynamodb.AttributeValue{
+				":v_sub": {N: ptr("100")},
+			},
+			ExpectedResult: true,
 		},
-		// "size (Brand) <= :v_sub",
-		// "size(VideoClip) > :v_sub",
-		// "size (Color) < :v_sub",
-		// "size(ProductReviews.OneStar) > :v_sub",
+		{
+			Name:      "size of list, result false",
+			Condition: "size (Brand) <> :v_sub",
+			Item: map[string]*dynamodb.AttributeValue{
+				"Brand": {L: []*dynamodb.AttributeValue{
+					{}, {}, {},
+				}},
+			},
+			Values: map[string]*dynamodb.AttributeValue{
+				":v_sub": {N: ptr("3")},
+			},
+			ExpectedResult: false,
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
