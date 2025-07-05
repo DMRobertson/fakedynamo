@@ -55,7 +55,7 @@ func Parse(s string) (Expression, error) {
 func dropBoringTokens(referer **node32) {
 	for n := *referer; n != nil; n = n.next {
 		switch n.pegRule {
-		case ruleSP, ruleMAYBE_SP, ruleAND:
+		case ruleSP, ruleMAYBE_SP:
 			// Drop this node and any children, replacing them with the next sibling.
 			(*referer) = n.next
 		default:

@@ -52,13 +52,33 @@ func (e Expression) evaluate(
 	}
 	switch node.pegRule {
 	case ruleConditionExpression,
-		ruleCondition,
-		ruleBooleanAtom,
 		ruleConjunct,
 		ruleOperand,
 		ruleFunctionReturningBool:
 		return e.evaluate(node.up, item, names, values)
-	case ruleDisjunct:
+	case ruleBooleanAtom:
+		// Allow us to evaluate document paths here, if they return a boolean.
+		// TODO: does this match real Dynamo?
+		result, err := e.evaluate(node.up, item, names, values)
+		if err != nil {
+			return nil, err
+		}
+		if result.BOOL == nil {
+			return nil, fmt.Errorf("%s is not a boolean", e.text(node))
+		}
+		return result, nil
+	case ruleDisjunction:
+		children := readAllChildren(node)
+		result := false
+		for _, child := range children {
+			val, err := e.evaluate(child, item, names, values)
+			if err != nil {
+				return nil, err
+			}
+			result = result || *val.BOOL
+		}
+		return &dynamodb.AttributeValue{BOOL: &result}, nil
+	case ruleConjunction:
 		children := readAllChildren(node)
 		result := true
 		for _, child := range children {
@@ -237,10 +257,9 @@ func (e Expression) evaluate(
 		ruleRawAttribute,
 		ruleName,
 		ruleListDereference,
-		ruleComparator,
-		ruleOR:
+		ruleComparator:
 		panic("don't think these should be evaluated here")
-	case ruleUnknown, ruleMAYBE_SP, ruleSP, ruleEND, ruleAND:
+	case ruleUnknown, ruleMAYBE_SP, ruleSP, ruleEND:
 		// Pruned
 	default:
 	}

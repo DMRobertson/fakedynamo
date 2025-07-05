@@ -1,6 +1,7 @@
 package conditionexpression_test
 
 import (
+	"os"
 	"testing"
 
 	"github.com/DMRobertson/fakedynamo/conditionexpression"
@@ -456,6 +457,74 @@ func TestExpression_Evaluate(t *testing.T) {
 			},
 			ExpectedResult: false,
 		},
+		{
+			Name:      "logical OR, result true",
+			Condition: "Aaa = :a OR #B = :b",
+			Item: map[string]*dynamodb.AttributeValue{
+				"Aaa": {S: ptr("aaaa")},
+				"Bbb": {S: ptr("bbbb")},
+			},
+			Names: map[string]*string{
+				"#B": ptr("Bbb"),
+			},
+			Values: map[string]*dynamodb.AttributeValue{
+				":a": {S: ptr("zzzz")},
+				":b": {S: ptr("bbbb")},
+			},
+			ExpectedResult: true,
+		},
+		{
+			Name:      "logical OR, result false",
+			Condition: "Aaa = :a OR #B = :b",
+			Item: map[string]*dynamodb.AttributeValue{
+				"Aaa": {S: ptr("aaaa")},
+				"Bbb": {S: ptr("bbbb")},
+			},
+			Names: map[string]*string{
+				"#B": ptr("Bbb"),
+			},
+			Values: map[string]*dynamodb.AttributeValue{
+				":a": {S: ptr("zzzz")},
+				":b": {S: ptr("yyyy")},
+			},
+			ExpectedResult: false,
+		},
+		{
+			Name:      "logical NOT, result true",
+			Condition: "NOT (Aaa = :a OR #B = :b)",
+			Item: map[string]*dynamodb.AttributeValue{
+				"Aaa": {S: ptr("aaaa")},
+				"Bbb": {S: ptr("bbbb")},
+			},
+			Names: map[string]*string{
+				"#B": ptr("Bbb"),
+			},
+			Values: map[string]*dynamodb.AttributeValue{
+				":a": {S: ptr("zzzz")},
+				":b": {S: ptr("yyyy")},
+			},
+			ExpectedResult: true,
+		},
+		{
+			Name:      "AND has lower precedence than OR",
+			Condition: "a OR b AND c",
+			Item: map[string]*dynamodb.AttributeValue{
+				"a": {BOOL: ptr(true)},
+				"b": {BOOL: ptr(true)},
+				"c": {BOOL: ptr(false)},
+			},
+			ExpectedResult: true,
+		},
+		{
+			Name:      "Brackets have lower precedence than AND",
+			Condition: "(a OR b) AND c",
+			Item: map[string]*dynamodb.AttributeValue{
+				"a": {BOOL: ptr(true)},
+				"b": {BOOL: ptr(true)},
+				"c": {BOOL: ptr(false)},
+			},
+			ExpectedResult: false,
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
@@ -463,7 +532,9 @@ func TestExpression_Evaluate(t *testing.T) {
 			require.NoError(t, err)
 			result, err := expr.Evaluate(tc.Item, tc.Names, tc.Values)
 			require.NoError(t, err)
-			assert.Equal(t, tc.ExpectedResult, result)
+			if !assert.Equal(t, tc.ExpectedResult, result) {
+				expr.PrettyPrint(os.Stderr)
+			}
 		})
 	}
 }

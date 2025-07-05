@@ -4,7 +4,7 @@ type parser Peg {
 
 }
 
-ConditionExpression <- MAYBE_SP Condition MAYBE_SP END
+ConditionExpression <- MAYBE_SP Disjunction MAYBE_SP END
 
 # https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.ExpressionAttributeNames.html
 ExpressionAttributeName <- '#' [a-zA-Z_]+
@@ -47,13 +47,13 @@ Contains <-
         DocumentPath MAYBE_SP ',' MAYBE_SP Operand
     MAYBE_SP ')'
 
-Condition <- Disjunct (SP OR SP Disjunct)*
-Disjunct <- Conjunct (SP AND SP Conjunct)*
+Disjunction <- Conjunction (SP ('OR'/'or') SP Conjunction)*
+Conjunction <- Conjunct (SP ('AND'/'and') SP Conjunct)*
 Conjunct <-
       Negation
-    / '(' MAYBE_SP Condition MAYBE_SP ')'
+    / '(' MAYBE_SP Disjunction MAYBE_SP ')'
     / BooleanAtom
-Negation <- 'NOT' SP Condition
+Negation <- 'NOT' SP Disjunction
 
 BooleanAtom <-
       FunctionReturningBool
@@ -61,9 +61,7 @@ BooleanAtom <-
     / Membership
     / Contains
     / Comparison
-
-AND <- 'AND' / 'and'
-OR <- 'OR' / 'or'
+    / DocumentPath
 
 MAYBE_SP <- ' '*
 SP <- ' '+
