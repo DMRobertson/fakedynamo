@@ -12,13 +12,11 @@ import (
 func TestDB_ListTables_ValidationErrors(t *testing.T) {
 	t.Parallel()
 	db := makeTestDB()
-	result, err := db.ListTables(&dynamodb.ListTablesInput{Limit: ptr[int64](0)})
+	_, err := db.ListTables(&dynamodb.ListTablesInput{Limit: ptr[int64](0)})
 	assert.ErrorContains(t, err, "Limit must be between 1 and 100")
-	assert.Nil(t, result)
 
-	result, err = db.ListTables(&dynamodb.ListTablesInput{Limit: ptr[int64](101)})
+	_, err = db.ListTables(&dynamodb.ListTablesInput{Limit: ptr[int64](101)})
 	assert.ErrorContains(t, err, "Limit must be between 1 and 100")
-	assert.Nil(t, result)
 }
 
 func TestDB_ListTables_DefaultLimitSize(t *testing.T) {

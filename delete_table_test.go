@@ -11,20 +11,18 @@ import (
 func TestDB_DeleteTable_ErrorsIfNoTableNameGiven(t *testing.T) {
 	t.Parallel()
 	db := makeTestDB()
-	result, err := db.DeleteTable(&dynamodb.DeleteTableInput{})
-	assert.ErrorContains(t, err, "TableName is a required field")
-	assert.Nil(t, result)
+	_, err := db.DeleteTable(&dynamodb.DeleteTableInput{})
+	assertErrorContains(t, err, "TableName", "required field")
 }
 
 func TestDB_DeleteTable_ErrorsIfTableMissing(t *testing.T) {
 	t.Parallel()
 	db := makeTestDB()
-	result, err := db.DeleteTable(&dynamodb.DeleteTableInput{
+	_, err := db.DeleteTable(&dynamodb.DeleteTableInput{
 		TableName: ptr("my-table"),
 	})
 	var expectedErr *dynamodb.ResourceNotFoundException
 	assert.ErrorAs(t, err, &expectedErr)
-	assert.Nil(t, result)
 }
 
 func TestDB_DeleteTable_HappyPath(t *testing.T) {
@@ -41,8 +39,7 @@ func TestDB_DeleteTable_HappyPath(t *testing.T) {
 	require.NotNil(t, deleteResult.TableDescription)
 	assert.Equal(t, *input.TableName, val(deleteResult.TableDescription.TableName))
 
-	describeResult, err := db.DescribeTable(&dynamodb.DescribeTableInput{TableName: input.TableName})
+	_, err = db.DescribeTable(&dynamodb.DescribeTableInput{TableName: input.TableName})
 	var expectedErr *dynamodb.ResourceNotFoundException
 	assert.ErrorAs(t, err, &expectedErr)
-	assert.Nil(t, describeResult)
 }

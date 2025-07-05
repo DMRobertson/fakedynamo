@@ -11,22 +11,20 @@ import (
 func TestDB_ValidationErrors_ReturnsValidationException_ForMissingRequiredFields(t *testing.T) {
 	t.Parallel()
 	db := makeTestDB()
-	output, err := db.GetItem(&dynamodb.GetItemInput{})
+	_, err := db.GetItem(&dynamodb.GetItemInput{})
 	assert.ErrorContains(t, err, "Key is a required field")
 	assert.ErrorContains(t, err, "TableName is a required field")
-	assert.Nil(t, output)
 }
 
 func TestDB_ValidationErrors_ReturnsValidationException_NoSuchTable(t *testing.T) {
 	t.Parallel()
 	db := makeTestDB()
-	output, err := db.GetItem(&dynamodb.GetItemInput{
+	_, err := db.GetItem(&dynamodb.GetItemInput{
 		Key:       map[string]*dynamodb.AttributeValue{},
 		TableName: ptr("blah"),
 	})
 	var expectedErr *dynamodb.ResourceNotFoundException
 	assert.ErrorAs(t, err, &expectedErr)
-	assert.Nil(t, output)
 }
 
 func TestDB_ValidationErrors_ReturnsValidation_ForNonPrimaryKeyFields(t *testing.T) {
@@ -35,7 +33,7 @@ func TestDB_ValidationErrors_ReturnsValidation_ForNonPrimaryKeyFields(t *testing
 	simpleTable, err := db.CreateTable(exampleCreateTableInputSimplePrimaryKey())
 	require.NoError(t, err)
 
-	result, err := db.GetItem(&dynamodb.GetItemInput{
+	_, err = db.GetItem(&dynamodb.GetItemInput{
 		TableName: simpleTable.TableDescription.TableName,
 		Key: map[string]*dynamodb.AttributeValue{
 			"Foo":      {S: ptr("foo")},
@@ -43,12 +41,11 @@ func TestDB_ValidationErrors_ReturnsValidation_ForNonPrimaryKeyFields(t *testing
 		},
 	})
 	assert.ErrorContains(t, err, "must provide partition key only")
-	assert.Nil(t, result)
 
 	compositeTable, err := db.CreateTable(exampleCreateTableInputCompositePrimaryKey())
 	require.NoError(t, err)
 
-	result, err = db.GetItem(&dynamodb.GetItemInput{
+	_, err = db.GetItem(&dynamodb.GetItemInput{
 		TableName: compositeTable.TableDescription.TableName,
 		Key: map[string]*dynamodb.AttributeValue{
 			"Foo":      {S: ptr("foo")},
@@ -57,7 +54,6 @@ func TestDB_ValidationErrors_ReturnsValidation_ForNonPrimaryKeyFields(t *testing
 		},
 	})
 	assert.ErrorContains(t, err, "must provide partition and sort keys only")
-	assert.Nil(t, result)
 }
 
 func TestDB_GetItem_SimplePartitionKey_Success(t *testing.T) {

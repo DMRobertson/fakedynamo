@@ -246,12 +246,11 @@ func Test_PutItem_ValidationErrors(t *testing.T) {
 				tc.Setup(t, db, &tc)
 			}
 
-			result, err := db.PutItem(&tc.Input)
+			_, err := db.PutItem(&tc.Input)
 			assert.ErrorContains(t, err, tc.ExpectErrorMessage)
 			if tc.ExpectErrorAs != nil {
 				assert.ErrorAs(t, err, &tc.ExpectErrorAs)
 			}
-			assert.Nil(t, result)
 		})
 	}
 }

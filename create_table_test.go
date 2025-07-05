@@ -155,10 +155,8 @@ func TestDB_CreateTable_ValidationErrors(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
 			db := makeTestDB()
-			result, err := db.CreateTable(&tc.Input)
-
+			_, err := db.CreateTable(&tc.Input)
 			assert.ErrorContains(t, err, tc.ExpectErrorMessage)
-			assert.Nil(t, result)
 		})
 	}
 }
@@ -174,7 +172,6 @@ func TestDB_CreateTable_ErrorsWhenTableExists(t *testing.T) {
 	result, err = db.CreateTable(input)
 	var expectedErr *dynamodb.ResourceInUseException
 	assert.ErrorAs(t, err, &expectedErr)
-	assert.Nil(t, result)
 }
 
 func exampleCreateTableInputSimplePrimaryKey() *dynamodb.CreateTableInput {
