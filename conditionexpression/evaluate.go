@@ -181,8 +181,20 @@ func (e Expression) evaluate(
 			return nil, err
 		}
 		return &dynamodb.AttributeValue{BOOL: ptr(!found)}, nil
-	case ruleAttributeType,
-		ruleContains:
+	case ruleAttributeType:
+		// TODO: what does Dynamo do if the attribute is missing?
+		children := readChildren(node, 2)
+		probe, err1 := e.evaluate(children[0], item, names, values)
+		typeVal, err2 := e.evaluate(children[1], item, names, values)
+		if err := errors.Join(err1, err2); err != nil {
+			return nil, err
+		}
+		if typeVal.S == nil {
+			return nil, errors.New("expected type must be specified as a string")
+		}
+		match := string(attrType(*probe)) == *typeVal.S
+		return &dynamodb.AttributeValue{BOOL: &match}, nil
+	case ruleContains:
 		panic("todo")
 	case ruleExpressionAttributeName,
 		ruleRawAttribute,

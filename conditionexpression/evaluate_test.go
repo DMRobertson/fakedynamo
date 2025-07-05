@@ -301,6 +301,32 @@ func TestExpression_Evaluate(t *testing.T) {
 			},
 			ExpectedResult: true,
 		},
+		{
+			Name:      "attribute_type, result false",
+			Condition: "attribute_type (ProductReviews.FiveStar, :v_sub)",
+			Item: map[string]*dynamodb.AttributeValue{
+				"ProductReviews": {M: map[string]*dynamodb.AttributeValue{
+					"FiveStar": {N: ptr("55555")},
+				}},
+			},
+			Values: map[string]*dynamodb.AttributeValue{
+				":v_sub": {S: ptr("S")},
+			},
+			ExpectedResult: false,
+		},
+		{
+			Name:      "attribute_type, result true",
+			Condition: "attribute_type (ProductReviews.FiveStar, :v_sub)",
+			Item: map[string]*dynamodb.AttributeValue{
+				"ProductReviews": {M: map[string]*dynamodb.AttributeValue{
+					"FiveStar": {N: ptr("55555")},
+				}},
+			},
+			Values: map[string]*dynamodb.AttributeValue{
+				":v_sub": {S: ptr("N")},
+			},
+			ExpectedResult: true,
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
