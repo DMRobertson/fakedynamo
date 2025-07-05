@@ -327,6 +327,83 @@ func TestExpression_Evaluate(t *testing.T) {
 			},
 			ExpectedResult: true,
 		},
+		{
+			Name:      "contains substring, result false",
+			Condition: "contains (Color, :v_sub)",
+			Item: map[string]*dynamodb.AttributeValue{
+				"Color": {S: ptr("brown")},
+			},
+			Values: map[string]*dynamodb.AttributeValue{
+				":v_sub": {S: ptr("e")},
+			},
+			ExpectedResult: false,
+		},
+		{
+			Name:      "contains substring, result true",
+			Condition: "contains (Color, :v_sub)",
+			Item: map[string]*dynamodb.AttributeValue{
+				"Color": {S: ptr("red")},
+			},
+			Values: map[string]*dynamodb.AttributeValue{
+				":v_sub": {S: ptr("e")},
+			},
+			ExpectedResult: true,
+		},
+		{
+			Name:      "contains substring, result false",
+			Condition: "contains (Color, :v_sub)",
+			Item: map[string]*dynamodb.AttributeValue{
+				"Color": {S: ptr("brown")},
+			},
+			Values: map[string]*dynamodb.AttributeValue{
+				":v_sub": {S: ptr("e")},
+			},
+			ExpectedResult: false,
+		},
+		{
+			Name:      "set contains string, result false",
+			Condition: "contains (Color, :v_sub)",
+			Item: map[string]*dynamodb.AttributeValue{
+				"Color": {SS: []*string{ptr("red"), ptr("green")}},
+			},
+			Values: map[string]*dynamodb.AttributeValue{
+				":v_sub": {S: ptr("e")},
+			},
+			ExpectedResult: false,
+		},
+		{
+			Name:      "set contains string, result true",
+			Condition: "contains (Color, :v_sub)",
+			Item: map[string]*dynamodb.AttributeValue{
+				"Color": {SS: []*string{ptr("red"), ptr("green")}},
+			},
+			Values: map[string]*dynamodb.AttributeValue{
+				":v_sub": {S: ptr("green")},
+			},
+			ExpectedResult: true,
+		},
+		{
+			Name:      "set contains binary, result true",
+			Condition: "contains (Color, :v_sub)",
+			Item: map[string]*dynamodb.AttributeValue{
+				"Color": {BS: [][]byte{[]byte("red"), []byte("green")}},
+			},
+			Values: map[string]*dynamodb.AttributeValue{
+				":v_sub": {B: []byte("green")},
+			},
+			ExpectedResult: true,
+		},
+		{
+			Name:      "set contains number, result true",
+			Condition: "contains (Color, :v_sub)",
+			Item: map[string]*dynamodb.AttributeValue{
+				"Color": {NS: []*string{ptr("1"), ptr("2")}},
+			},
+			Values: map[string]*dynamodb.AttributeValue{
+				":v_sub": {N: ptr("1")},
+			},
+			ExpectedResult: true,
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {

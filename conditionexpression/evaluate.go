@@ -195,7 +195,19 @@ func (e Expression) evaluate(
 		match := string(attrType(*probe)) == *typeVal.S
 		return &dynamodb.AttributeValue{BOOL: &match}, nil
 	case ruleContains:
-		panic("todo")
+		children := readChildren(node, 2)
+		haystack, err1 := e.evaluate(children[0], item, names, values)
+		needle, err2 := e.evaluate(children[1], item, names, values)
+		if err := errors.Join(err1, err2); err != nil {
+			return nil, err
+		}
+		// TODO: The path and the operand must be distinct. That is,
+		//  `contains (a, a)` returns an error.
+		match, err := contains(*haystack, *needle)
+		if err != nil {
+			return nil, err
+		}
+		return &dynamodb.AttributeValue{BOOL: &match}, nil
 	case ruleExpressionAttributeName,
 		ruleRawAttribute,
 		ruleName,
@@ -415,4 +427,32 @@ func (e Expression) attributeExists(
 		return false, err
 	}
 	return true, nil
+}
+
+func contains(haystack, needle dynamodb.AttributeValue) (bool, error) {
+	hayType := attrType(haystack)
+	needleType := attrType(needle)
+	switch {
+	case hayType == expression.String && needleType == expression.String:
+		return strings.Contains(*haystack.S, *needle.S), nil
+
+	case hayType == expression.StringSet && needleType == expression.String:
+		return slices.ContainsFunc(haystack.SS, func(element *string) bool {
+			return *element == *needle.S
+		}), nil
+
+	case hayType == expression.BinarySet && needleType == expression.Binary:
+		return slices.ContainsFunc(haystack.BS, func(element []byte) bool {
+			return bytes.Equal(element, needle.B)
+		}), nil
+
+	case hayType == expression.NumberSet && needleType == expression.Number:
+		return slices.ContainsFunc(haystack.NS, func(element *string) bool {
+			return *element == *needle.N
+		}), nil
+
+	case hayType == expression.List:
+		panic("TODO")
+	}
+	return false, fmt.Errorf("invalid types for contains (%s, %s)", hayType, needleType)
 }
