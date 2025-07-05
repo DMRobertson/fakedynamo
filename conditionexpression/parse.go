@@ -8,6 +8,7 @@
 package conditionexpression
 
 import (
+	"errors"
 	"io"
 )
 
@@ -19,6 +20,8 @@ type Expression struct {
 }
 
 func Parse(s string) (Expression, error) {
+	// TODO: enforce length limits defined here:
+	//       https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Constraints.html#limits-expression-parameters
 	p := &parser{
 		Buffer: s,
 		Pretty: true,
@@ -33,7 +36,14 @@ func Parse(s string) (Expression, error) {
 	}
 
 	root := p.AST()
+	// Okay, I guess this is why people have a separate lexing and parsing
+	// stage.
 	dropBoringTokens(&root)
+
+	if err := checkInOperationLength(root); err != nil {
+		return Expression{}, err
+	}
+
 	expr := Expression{
 		buffer: p.Buffer,
 		ast:    root,
@@ -53,6 +63,22 @@ func dropBoringTokens(referer **node32) {
 			referer = &n.next
 		}
 	}
+}
+
+func checkInOperationLength(node *node32) error {
+	for n := node; n != nil; n = n.next {
+		if node.pegRule == ruleMembership {
+			children := readAllChildren(node)
+			// The probe is one child, and then we can have up to 100
+			if len(children) > 101 {
+				return errors.New("too many arguments to IN expression (max 100)")
+			}
+		}
+		if err := checkInOperationLength(node.up); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (e Expression) PrettyPrint(w io.Writer) {

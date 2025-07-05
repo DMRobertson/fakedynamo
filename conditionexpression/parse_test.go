@@ -1,6 +1,7 @@
 package conditionexpression_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/DMRobertson/fakedynamo/conditionexpression"
@@ -48,6 +49,24 @@ func TestParser_Parse(t *testing.T) {
 			assert.NoError(t, err)
 		})
 	}
+}
+
+func TestParser_Parse_RejectsOversizedMembershipTest(t *testing.T) {
+	inListOfSize := func(count int) string {
+		var builder strings.Builder
+		builder.WriteString("Name IN (:val")
+		for range count - 1 {
+			builder.WriteString(", :val")
+		}
+		builder.WriteString(")")
+		return builder.String()
+	}
+
+	_, err := conditionexpression.Parse(inListOfSize(100))
+	assert.NoError(t, err)
+
+	_, err = conditionexpression.Parse(inListOfSize(101))
+	assert.ErrorContains(t, err, "too many arguments to IN expression")
 }
 
 func ptr[T any](v T) *T {
