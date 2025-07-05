@@ -404,6 +404,41 @@ func TestExpression_Evaluate(t *testing.T) {
 			},
 			ExpectedResult: true,
 		},
+		{
+			Name:      "list contains string, result false",
+			Condition: "contains (Color, :v_sub)",
+			Item: map[string]*dynamodb.AttributeValue{
+				"Color": {L: []*dynamodb.AttributeValue{
+					{N: ptr("1")},
+					{S: ptr("2")},
+				}},
+			},
+			Values: map[string]*dynamodb.AttributeValue{
+				":v_sub": {S: ptr("1")},
+			},
+			ExpectedResult: false,
+		},
+		{
+			Name:      "list contains string, result false",
+			Condition: "contains (Color, :v_sub)",
+			Item: map[string]*dynamodb.AttributeValue{
+				"Color": {L: []*dynamodb.AttributeValue{
+					{N: ptr("1")},
+					{S: ptr("2")},
+				}},
+			},
+			Values: map[string]*dynamodb.AttributeValue{
+				":v_sub": {S: ptr("2")},
+			},
+			ExpectedResult: true,
+		},
+		{
+			Name: "size of string, result true",
+		},
+		// "size (Brand) <= :v_sub",
+		// "size(VideoClip) > :v_sub",
+		// "size (Color) < :v_sub",
+		// "size(ProductReviews.OneStar) > :v_sub",
 	}
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {

@@ -452,7 +452,28 @@ func contains(haystack, needle dynamodb.AttributeValue) (bool, error) {
 		}), nil
 
 	case hayType == expression.List:
-		panic("TODO")
+		switch needleType {
+		case expression.String:
+			return slices.ContainsFunc(haystack.L, func(element *dynamodb.AttributeValue) bool {
+				return element.S != nil && *element.S == *needle.S
+			}), nil
+		case expression.Number:
+			return slices.ContainsFunc(haystack.L, func(element *dynamodb.AttributeValue) bool {
+				return element.N != nil && *element.N == *needle.N
+			}), nil
+		case expression.Binary:
+			return slices.ContainsFunc(haystack.L, func(element *dynamodb.AttributeValue) bool {
+				return bytes.Equal(element.B, needle.B)
+			}), nil
+		case expression.Boolean:
+			return slices.ContainsFunc(haystack.L, func(element *dynamodb.AttributeValue) bool {
+				return element.BOOL != nil && *element.BOOL == *needle.BOOL
+			}), nil
+		case expression.Null:
+			return slices.ContainsFunc(haystack.L, func(element *dynamodb.AttributeValue) bool {
+				return element.NULL != nil
+			}), nil
+		}
 	}
 	return false, fmt.Errorf("invalid types for contains (%s, %s)", hayType, needleType)
 }
