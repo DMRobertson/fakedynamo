@@ -124,8 +124,35 @@ func (e Expression) evaluate(
 		return &dynamodb.AttributeValue{
 			BOOL: ptr(strings.HasPrefix(*probe.S, *prefix.S)),
 		}, nil
-	case ruleMembership,
-		ruleAttributeExists,
+	case ruleMembership:
+		children := readAllChildren(node)
+		evaluated := make([]*dynamodb.AttributeValue, len(children))
+		var errs []error
+		for i, child := range children {
+			result, err := e.evaluate(child, item, names, values)
+			if err != nil {
+				errs = append(errs, err)
+			} else {
+				evaluated[i] = result
+			}
+		}
+		if err := errors.Join(errs...); err != nil {
+			return nil, err
+		}
+		probe := evaluated[0]
+		for _, child := range evaluated[1:] {
+			// TODO: does Dynamo let you say "string IN (bool, int, string)?
+			// As implemented, this will error but real Dynamo may allow it.
+			result, err := e.compare(*probe, "=", *child)
+			if err != nil {
+				return nil, err
+			}
+			if result {
+				return &dynamodb.AttributeValue{BOOL: ptr(true)}, nil
+			}
+		}
+		return &dynamodb.AttributeValue{BOOL: ptr(false)}, nil
+	case ruleAttributeExists,
 		ruleAttributeNotExists,
 		ruleAttributeType,
 		ruleContains:

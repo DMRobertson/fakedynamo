@@ -199,6 +199,22 @@ func TestExpression_Evaluate(t *testing.T) {
 			},
 			ExpectedResult: false,
 		},
+		{
+			Name:      "membership, result true",
+			Condition: "#Col IN (:red, :green, :blue)",
+			Item: map[string]*dynamodb.AttributeValue{
+				"Color": {S: ptr("red")},
+			},
+			Names: map[string]*string{
+				"#Col": ptr("Color"),
+			},
+			Values: map[string]*dynamodb.AttributeValue{
+				":red":   {S: ptr("red")},
+				":green": {S: ptr("green")},
+				":blue":  {S: ptr("blue")},
+			},
+			ExpectedResult: true,
+		},
 	}
 
 	for _, tc := range testCases {
