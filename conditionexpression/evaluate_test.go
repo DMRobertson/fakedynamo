@@ -215,8 +215,93 @@ func TestExpression_Evaluate(t *testing.T) {
 			},
 			ExpectedResult: true,
 		},
+		{
+			Name:      "membership, result false",
+			Condition: "#Col IN (:red, :green, :blue)",
+			Item: map[string]*dynamodb.AttributeValue{
+				"Color": {S: ptr("octarine")},
+			},
+			Names: map[string]*string{
+				"#Col": ptr("Color"),
+			},
+			Values: map[string]*dynamodb.AttributeValue{
+				":red":   {S: ptr("red")},
+				":green": {S: ptr("green")},
+				":blue":  {S: ptr("blue")},
+			},
+			ExpectedResult: false,
+		},
+		{
+			Name:      "attribute_exists, path start missing, result false",
+			Condition: "attribute_exists (#Pictures[0].#SideView)",
+			Item: map[string]*dynamodb.AttributeValue{
+				"#Pictures[1].#SideView": {S: ptr("aardvark")},
+			},
+			Names: map[string]*string{
+				"#Pictures": ptr("pics"),
+				"#SideView": ptr("side"),
+			},
+			ExpectedResult: false,
+		},
+		{
+			Name:      "attribute_exists, list item missing, result false",
+			Condition: "attribute_exists (#Pictures[0].#SideView)",
+			Item: map[string]*dynamodb.AttributeValue{
+				"pics": {L: []*dynamodb.AttributeValue{}}},
+			Names: map[string]*string{
+				"#Pictures": ptr("pics"),
+				"#SideView": ptr("side"),
+			},
+			ExpectedResult: false,
+		},
+		{
+			Name:      "attribute_exists, map key missing, result false",
+			Condition: "attribute_exists (#Pictures[0].#SideView)",
+			Item: map[string]*dynamodb.AttributeValue{
+				"pics": {L: []*dynamodb.AttributeValue{
+					{M: map[string]*dynamodb.AttributeValue{}},
+				}}},
+			Names: map[string]*string{
+				"#Pictures": ptr("pics"),
+				"#SideView": ptr("side"),
+			},
+			ExpectedResult: false,
+		},
+		{
+			Name:      "attribute_exists, result true",
+			Condition: "attribute_exists (#Pictures[0].#SideView)",
+			Item: map[string]*dynamodb.AttributeValue{
+				"pics": {L: []*dynamodb.AttributeValue{
+					{M: map[string]*dynamodb.AttributeValue{
+						"side": {NULL: ptr(true)},
+					}},
+				}}},
+			Names: map[string]*string{
+				"#Pictures": ptr("pics"),
+				"#SideView": ptr("side"),
+			},
+			ExpectedResult: true,
+		},
+		{
+			Name:      "attribute_not_exists, result false",
+			Condition: "attribute_not_exists (Manufacturer)",
+			Item: map[string]*dynamodb.AttributeValue{
+				"Manufacturer": {L: []*dynamodb.AttributeValue{
+					{M: map[string]*dynamodb.AttributeValue{
+						"side": {NULL: ptr(true)},
+					}},
+				}}},
+			ExpectedResult: false,
+		},
+		{
+			Name:      "attribute_not_exists, result true",
+			Condition: "attribute_not_exists (Manufacturer)",
+			Item: map[string]*dynamodb.AttributeValue{
+				"somePartitionKey": {S: ptr("lol")},
+			},
+			ExpectedResult: true,
+		},
 	}
-
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
 			expr, err := conditionexpression.Parse(tc.Condition)

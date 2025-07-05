@@ -5,12 +5,29 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
 	"github.com/shopspring/decimal"
 )
+
+type errNoSuchAttribute struct {
+	Key string
+}
+
+func (e errNoSuchAttribute) Error() string {
+	return fmt.Sprintf("no such attribute '%s'", e.Key)
+}
+
+type errNoSuchIndex struct {
+	Index int
+}
+
+func (e errNoSuchIndex) Error() string {
+	return fmt.Sprintf("no such index '%d'", e.Index)
+}
 
 func (e Expression) Evaluate(
 	item map[string]*dynamodb.AttributeValue,
@@ -152,20 +169,29 @@ func (e Expression) evaluate(
 			}
 		}
 		return &dynamodb.AttributeValue{BOOL: ptr(false)}, nil
-	case ruleAttributeExists,
-		ruleAttributeNotExists,
-		ruleAttributeType,
+	case ruleAttributeExists:
+		found, err := e.attributeExists(node, item, names)
+		if err != nil {
+			return nil, err
+		}
+		return &dynamodb.AttributeValue{BOOL: &found}, nil
+	case ruleAttributeNotExists:
+		found, err := e.attributeExists(node, item, names)
+		if err != nil {
+			return nil, err
+		}
+		return &dynamodb.AttributeValue{BOOL: ptr(!found)}, nil
+	case ruleAttributeType,
 		ruleContains:
 		panic("todo")
 	case ruleExpressionAttributeName,
 		ruleRawAttribute,
 		ruleName,
 		ruleListDereference,
-		ruleMapDereference,
 		ruleSize,
 		ruleComparator,
 		ruleOR:
-		panic("don't think these should be evaluated")
+		panic("don't think these should be evaluated here")
 	case ruleUnknown, ruleMAYBE_SP, ruleSP, ruleEND, ruleAND:
 		// Pruned
 	default:
@@ -313,9 +339,12 @@ func (e Expression) walkDocumentPath(node *node32,
 				key := e.text(node.up)
 				cursor, exists = cursor.M[key]
 				if !exists {
-					return nil, fmt.Errorf("no such key '%s'", key)
+					return nil, errNoSuchAttribute{Key: key}
 				}
 				node = node.next
+				if path != "" {
+					path += "."
+				}
 				path += key
 			case ruleExpressionAttributeName:
 				if cursor.M == nil {
@@ -329,7 +358,7 @@ func (e Expression) walkDocumentPath(node *node32,
 
 				cursor, exists = cursor.M[*key]
 				if !exists {
-					return nil, fmt.Errorf("no such key '%s'", *key)
+					return nil, errNoSuchAttribute{Key: *key}
 				}
 				node = node.next
 				path += *key
@@ -337,13 +366,41 @@ func (e Expression) walkDocumentPath(node *node32,
 				panic("unreachable")
 			}
 		case ruleListDereference:
-			panic("TODO")
-		case ruleMapDereference:
-			panic("TODO")
+			if cursor.L == nil {
+				return nil, fmt.Errorf("%s is not a list", path)
+			}
+
+			index := e.text(node)
+			index = index[1 : len(index)-1]
+			i, err := strconv.Atoi(index)
+			if err != nil {
+				return nil, err
+			}
+
+			if len(cursor.L) < i+1 {
+				return nil, errNoSuchIndex{Index: i}
+			}
+			cursor = cursor.L[i]
+			node = node.next
+			path += index
 		default:
 			panic("unreachable")
 		}
 	}
 
 	return cursor, nil
+}
+
+func (e Expression) attributeExists(
+	node *node32,
+	item map[string]*dynamodb.AttributeValue,
+	names map[string]*string,
+) (bool, error) {
+	_, err := e.walkDocumentPath(node.up.up, item, names)
+	if errors.As(err, &errNoSuchAttribute{}) || errors.As(err, &errNoSuchIndex{}) {
+		return false, nil
+	} else if err != nil {
+		return false, err
+	}
+	return true, nil
 }

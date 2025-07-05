@@ -14,8 +14,7 @@ RawAttribute <- [a-zA-Z] [a-zA-Z0-9]*
 
 Name <- RawAttribute / ExpressionAttributeName
 ListDereference <- '[' [0-9]+ ']'
-MapDereference <- '.' Name
-DocumentPath <- Name (ListDereference / MapDereference)*
+DocumentPath <- Name (ListDereference / '.' Name)*
 
 # https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.ExpressionAttributeValues.html
 ExpressionAttributeValue <- ':' [a-zA-Z0-9_]+
