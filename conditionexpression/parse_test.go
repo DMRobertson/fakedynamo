@@ -220,6 +220,28 @@ func TestEvaluate(t *testing.T) {
 			},
 			ExpectedResult: true,
 		},
+		{
+			Name:      "begins_with, result true",
+			Condition: "begins_with ( sortKeyName, :sortkeyval )",
+			Item: map[string]*dynamodb.AttributeValue{
+				"sortKeyName": {S: ptr("abcdef")},
+			},
+			Values: map[string]*dynamodb.AttributeValue{
+				":sortkeyval": {S: ptr("abc")},
+			},
+			ExpectedResult: true,
+		},
+		{
+			Name:      "begins_with, result false",
+			Condition: "begins_with ( sortKeyName, :sortkeyval )",
+			Item: map[string]*dynamodb.AttributeValue{
+				"sortKeyName": {S: ptr("abcdef")},
+			},
+			Values: map[string]*dynamodb.AttributeValue{
+				":sortkeyval": {S: ptr("xyz")},
+			},
+			ExpectedResult: false,
+		},
 	}
 
 	for _, tc := range testCases {

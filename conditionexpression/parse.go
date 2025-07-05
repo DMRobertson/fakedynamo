@@ -94,7 +94,8 @@ func (e Expression) evaluate(
 		ruleCondition,
 		ruleBooleanAtom,
 		ruleConjunct,
-		ruleOperand:
+		ruleOperand,
+		ruleFunctionReturningBool:
 		return e.evaluate(node.up, item, names, values)
 	case ruleDisjunct:
 		children := readAllChildren(node)
@@ -163,12 +164,26 @@ func (e Expression) evaluate(
 			return nil, err
 		}
 		return &dynamodb.AttributeValue{BOOL: ptr(aboveLower && belowUpper)}, nil
+	case ruleBeginsWith:
+		children := readChildren(node, 2)
+		probe, err1 := e.evaluate(children[0], item, names, values)
+		prefix, err2 := e.evaluate(children[1], item, names, values)
+		if err := errors.Join(err1, err2); err != nil {
+			return nil, err
+		}
+		probeType := attrType(*probe)
+		prefixType := attrType(*prefix)
+		if probeType != expression.String || prefixType != expression.String {
+			return nil, fmt.Errorf("begins_with arguments must be strings, got %s, %s)", probeType, prefixType)
+		}
+
+		return &dynamodb.AttributeValue{
+			BOOL: ptr(strings.HasPrefix(*probe.S, *prefix.S)),
+		}, nil
 	case ruleMembership,
-		ruleFunctionReturningBool,
 		ruleAttributeExists,
 		ruleAttributeNotExists,
 		ruleAttributeType,
-		ruleBeginsWith,
 		ruleContains:
 		panic("todo")
 	case ruleExpressionAttributeName,
