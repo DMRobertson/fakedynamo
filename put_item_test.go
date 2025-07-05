@@ -163,44 +163,65 @@ func Test_PutItem_ValidationErrors(t *testing.T) {
 		{
 			Name: "Returns ValidationException on Binary key type mismatch",
 			Setup: func(t *testing.T, db dynamodbiface.DynamoDBAPI, tc *testCase) {
-				_, err := db.CreateTable(exampleSimpleTableSpec)
+				spec := exampleSimpleTableSpec
+				spec.AttributeDefinitions = []*dynamodb.AttributeDefinition{
+					{
+						AttributeName: ptr("Foo"),
+						AttributeType: ptr(dynamodb.ScalarAttributeTypeB),
+					},
+				}
+				_, err := db.CreateTable(spec)
 				require.NoError(t, err)
 			},
 			Input: dynamodb.PutItemInput{
 				Item: map[string]*dynamodb.AttributeValue{
-					"Binary": {S: ptr("123")},
+					"Foo": {S: ptr("123")},
 				},
 				TableName: exampleSimpleTableSpec.TableName,
 			},
-			ExpectErrorMessage: "Item.Binary is defined to have type B",
+			ExpectErrorMessage: "Item.Foo is defined to have type B",
 		},
 		{
 			Name: "Returns ValidationException on Binary key with empty value",
 			Setup: func(t *testing.T, db dynamodbiface.DynamoDBAPI, tc *testCase) {
-				_, err := db.CreateTable(exampleSimpleTableSpec)
+				spec := exampleSimpleTableSpec
+				spec.AttributeDefinitions = []*dynamodb.AttributeDefinition{
+					{
+						AttributeName: ptr("Foo"),
+						AttributeType: ptr(dynamodb.ScalarAttributeTypeB),
+					},
+				}
+				_, err := db.CreateTable(spec)
 				require.NoError(t, err)
 			},
 			Input: dynamodb.PutItemInput{
 				Item: map[string]*dynamodb.AttributeValue{
-					"Binary": {B: []byte{}},
+					"Foo": {B: []byte{}},
 				},
 				TableName: exampleSimpleTableSpec.TableName,
 			},
-			ExpectErrorMessage: "Item.Binary.B cannot be empty",
+			ExpectErrorMessage: "Item.Foo.B cannot be empty",
 		},
 		{
 			Name: "Returns ValidationException on Number key type mismatch",
 			Setup: func(t *testing.T, db dynamodbiface.DynamoDBAPI, tc *testCase) {
-				_, err := db.CreateTable(exampleSimpleTableSpec)
+				spec := exampleSimpleTableSpec
+				spec.AttributeDefinitions = []*dynamodb.AttributeDefinition{
+					{
+						AttributeName: ptr("Foo"),
+						AttributeType: ptr(dynamodb.ScalarAttributeTypeN),
+					},
+				}
+				_, err := db.CreateTable(spec)
 				require.NoError(t, err)
 			},
 			Input: dynamodb.PutItemInput{
 				Item: map[string]*dynamodb.AttributeValue{
-					"Number": {S: ptr("123")},
+					"Foo": {S: ptr("bar")},
 				},
 				TableName: exampleSimpleTableSpec.TableName,
 			},
-			ExpectErrorMessage: "Item.Number is defined to have type N",
+			ExpectErrorMessage: "Item.Foo is defined to have type N",
 		},
 		{
 			Name: "Returns ValidationException on Number key with empty value",
@@ -210,11 +231,11 @@ func Test_PutItem_ValidationErrors(t *testing.T) {
 			},
 			Input: dynamodb.PutItemInput{
 				Item: map[string]*dynamodb.AttributeValue{
-					"Number": {N: ptr("")},
+					"Foo": {N: ptr("")},
 				},
 				TableName: exampleSimpleTableSpec.TableName,
 			},
-			ExpectErrorMessage: "Item.Number.N cannot be empty",
+			ExpectErrorMessage: "Item.Foo.N cannot be empty",
 		},
 	}
 

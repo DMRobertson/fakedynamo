@@ -16,6 +16,12 @@ func (d *DB) CreateTable(input *dynamodb.CreateTableInput) (*dynamodb.CreateTabl
 		validateCreateTableInputAttributeDefinitions(input.AttributeDefinitions),
 		validateCreateTableInputKeySchema(input.KeySchema),
 	}
+	// TODO: DynamoDB Local complains if we don't specify a provisioned
+	//       throughput. I think this is because BillingMode defaults to
+	//       PROVISIONED (though the docs don't say this). In the PROVISIONED
+	//       case, you need to provide the ProvisionedThroughput field.
+	//
+	// TODO: confirm this, and make the fake enforce it.
 
 	var schema *tableSchema
 	if noErrors(errs) {
@@ -147,6 +153,9 @@ func parseTableSchema(input *dynamodb.CreateTableInput) (*tableSchema, error) {
 			errs = append(errs, newValidationErrorf("%s is missing from AttributeDefinitions", sortAttrName))
 		}
 	}
+
+	// TODO: DynamoDB local errors if there are more attributes defined in
+	//       then used in the KeySchema (+indices?). Enforce this.
 
 	if err := errors.Join(errs...); err != nil {
 		return nil, err

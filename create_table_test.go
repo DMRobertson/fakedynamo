@@ -166,22 +166,12 @@ func TestDB_CreateTable_ValidationErrors(t *testing.T) {
 func TestDB_CreateTable_ErrorsWhenTableExists(t *testing.T) {
 	t.Parallel()
 	db := makeTestDB()
-	input := dynamodb.CreateTableInput{
-		AttributeDefinitions: []*dynamodb.AttributeDefinition{{
-			AttributeName: ptr("Foo"),
-			AttributeType: ptr("S"),
-		}},
-		KeySchema: []*dynamodb.KeySchemaElement{{
-			AttributeName: ptr("Foo"),
-			KeyType:       ptr(dynamodb.KeyTypeHash),
-		}},
-		TableName: aws.String("my-table"),
-	}
-	result, err := db.CreateTable(&input)
+	input := exampleCreateTableInputSimplePrimaryKey()
+	result, err := db.CreateTable(input)
 	require.NoError(t, err)
 	require.NotNil(t, result)
 
-	result, err = db.CreateTable(&input)
+	result, err = db.CreateTable(input)
 	var expectedErr *dynamodb.ResourceInUseException
 	assert.ErrorAs(t, err, &expectedErr)
 	assert.Nil(t, result)
@@ -194,18 +184,6 @@ func exampleCreateTableInputSimplePrimaryKey() *dynamodb.CreateTableInput {
 				AttributeName: ptr("Foo"),
 				AttributeType: ptr("S"),
 			},
-			{
-				AttributeName: ptr("String"),
-				AttributeType: ptr("S"),
-			},
-			{
-				AttributeName: ptr("Binary"),
-				AttributeType: ptr("B"),
-			},
-			{
-				AttributeName: ptr("Number"),
-				AttributeType: ptr("N"),
-			},
 		},
 		KeySchema: []*dynamodb.KeySchemaElement{
 			{
@@ -213,8 +191,11 @@ func exampleCreateTableInputSimplePrimaryKey() *dynamodb.CreateTableInput {
 				KeyType:       ptr(dynamodb.KeyTypeHash),
 			},
 		},
-
-		TableName: aws.String("my-table"),
+		ProvisionedThroughput: &dynamodb.ProvisionedThroughput{
+			ReadCapacityUnits:  ptr[int64](100),
+			WriteCapacityUnits: ptr[int64](100),
+		},
+		TableName: aws.String("simple-table-" + nonce()),
 	}
 }
 
@@ -239,8 +220,11 @@ func exampleCreateTableInputCompositePrimaryKey() *dynamodb.CreateTableInput {
 				KeyType:       ptr(dynamodb.KeyTypeRange),
 			},
 		},
-
-		TableName: aws.String("composite-table"),
+		ProvisionedThroughput: &dynamodb.ProvisionedThroughput{
+			ReadCapacityUnits:  ptr[int64](100),
+			WriteCapacityUnits: ptr[int64](100),
+		},
+		TableName: aws.String("composite-table-" + nonce()),
 	}
 }
 

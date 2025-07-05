@@ -3,6 +3,9 @@ package fakedynamo_test
 import (
 	"cmp"
 	"os"
+	"strconv"
+	"sync/atomic"
+	"testing"
 
 	"github.com/DMRobertson/fakedynamo"
 	"github.com/aws/aws-sdk-go/aws"
@@ -12,7 +15,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 )
 
-var dynamodbSession *session.Session
+var (
+	dynamodbSession *session.Session
+	nonceCounter    atomic.Uint64
+)
 
 func init() {
 	endpoint := os.Getenv("DYNAMODB_ENDPOINT")
@@ -26,11 +32,43 @@ func init() {
 	}
 }
 
+func TestMain(m *testing.M) {
+	retval := m.Run()
+
+	if dynamodbSession != nil {
+		db := dynamodb.New(dynamodbSession)
+		for {
+			result, err := db.ListTables(&dynamodb.ListTablesInput{})
+			if err != nil {
+				panic(err)
+			}
+			if len(result.TableNames) == 0 {
+				break
+			}
+			for _, tableName := range result.TableNames {
+				_, err := db.DeleteTable(&dynamodb.DeleteTableInput{
+					TableName: tableName,
+				})
+				if err != nil {
+					panic(err)
+				}
+			}
+		}
+	}
+
+	os.Exit(retval)
+}
+
 func makeTestDB() dynamodbiface.DynamoDBAPI {
 	if dynamodbSession != nil {
 		return dynamodb.New(dynamodbSession)
 	}
 	return fakedynamo.NewDB()
+}
+
+func nonce() string {
+	value := nonceCounter.Add(1)
+	return strconv.Itoa(int(value))
 }
 
 func ptr[T any](v T) *T {

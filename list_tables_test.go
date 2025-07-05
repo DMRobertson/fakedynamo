@@ -1,7 +1,6 @@
 package fakedynamo_test
 
 import (
-	"fmt"
 	"slices"
 	"testing"
 
@@ -25,9 +24,8 @@ func TestDB_ListTables_ValidationErrors(t *testing.T) {
 func TestDB_ListTables_DefaultLimitSize(t *testing.T) {
 	t.Parallel()
 	db := makeTestDB()
-	for i := range 200 {
+	for range 200 {
 		input := exampleCreateTableInputCompositePrimaryKey()
-		input.TableName = ptr(fmt.Sprintf("table-%d", i))
 		_, err := db.CreateTable(input)
 		require.NoError(t, err)
 	}
@@ -43,9 +41,7 @@ func TestDB_ListTables_Pagination(t *testing.T) {
 	expectedNames := make([]*string, 250)
 	for i := range expectedNames {
 		input := exampleCreateTableInputCompositePrimaryKey()
-		tableName := fmt.Sprintf("table-%d", i)
-		expectedNames[i] = &tableName
-		input.TableName = &tableName
+		expectedNames[i] = input.TableName
 		_, err := db.CreateTable(input)
 		require.NoError(t, err)
 	}
@@ -87,9 +83,7 @@ func TestDB_ListTablesPages(t *testing.T) {
 	expectedNames := make([]*string, 250)
 	for i := range expectedNames {
 		input := exampleCreateTableInputCompositePrimaryKey()
-		tableName := fmt.Sprintf("table-%d", i)
-		expectedNames[i] = &tableName
-		input.TableName = &tableName
+		expectedNames[i] = input.TableName
 		_, err := db.CreateTable(input)
 		require.NoError(t, err)
 	}
