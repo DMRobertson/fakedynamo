@@ -1,0 +1,21 @@
+name: Go
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.24
+
+      - name: Download dependencies
+        run: go get .
+
+      - name: Test
+        uses: robherley/go-test-action@b19f6aadabfb1ad85079065b21aa2af132466468
