@@ -17,7 +17,7 @@ func Test_PutItem_ValidationErrors(t *testing.T) {
 		SkipLocal string
 
 		ExpectErrorMessages []string
-		ExpectErrorAs       error
+		ExpectErrorAs       any
 	}
 
 	hugeKey := string(make([]byte, 65536))

@@ -1,0 +1,17 @@
+version: "2"
+linters:
+  default: all
+  disable:
+    - varnamelen
+    - wsl
+    - wsl_v5
+  exclusions:
+    generated: lax
+  settings:
+    testifylint:
+      enable-all: true
+      disable:
+        - require-error
+formatters:
+  enable:
+    - gofumpt

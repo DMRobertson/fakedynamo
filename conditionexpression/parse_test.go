@@ -46,6 +46,7 @@ func TestParser_Parse(t *testing.T) {
 
 	for _, expr := range examples {
 		t.Run(expr, func(t *testing.T) {
+			t.Parallel()
 			_, err := conditionexpression.Parse(expr)
 			assert.NoError(t, err)
 		})

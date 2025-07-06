@@ -441,7 +441,7 @@ func (e Expression) walkDocumentPath(node *node32,
 			index = index[1 : len(index)-1]
 			i, err := strconv.Atoi(index)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("failed to parse list index: %w", err)
 			}
 
 			if len(cursor.L) < i+1 {
