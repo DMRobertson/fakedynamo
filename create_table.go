@@ -96,32 +96,33 @@ func validateCreateTableInputKeySchema(input []*dynamodb.KeySchemaElement) error
 		return newValidationError("KeySchema must contain 1 or 2 items")
 	}
 
-	var errs []error
-
-	if input[0] == nil {
-		errs = append(errs, newValidationErrorf("KeySchema[0] is nil"))
-	} else {
-		if val(input[0].KeyType) != dynamodb.KeyTypeHash {
-			errs = append(errs, newValidationError("KeySchema[0] must have type HASH"))
-		}
-		if len(val(input[0].AttributeName)) == 0 {
-			errs = append(errs, newValidationError("KeySchema[0] has no AttributeName"))
-		}
-	}
-
+	errs := []error{checkKeySchema(0, input[0], dynamodb.KeyTypeHash)}
 	if len(input) > 1 {
-		if input[1] == nil {
-			errs = append(errs, newValidationErrorf("KeySchema[1] is nil"))
-		} else {
-			if val(input[1].KeyType) != dynamodb.KeyTypeRange {
-				errs = append(errs, newValidationError("KeySchema[1] must have type RANGE"))
-			}
-			if len(val(input[1].AttributeName)) == 0 {
-				errs = append(errs, newValidationError("KeySchema[1] has no AttributeName"))
-			}
-		}
+		errs = append(errs, checkKeySchema(1, input[1], dynamodb.KeyTypeRange))
 	}
 
+	return errors.Join(errs...)
+}
+
+func checkKeySchema(
+	index int,
+	input *dynamodb.KeySchemaElement,
+	expectedType string,
+) error {
+	if input == nil {
+		return newValidationErrorf("KeySchema[%d] is nil", index)
+	}
+	var errs []error
+	if val(input.KeyType) != expectedType {
+		errs = append(errs, newValidationErrorf(
+			"KeySchema[%d] must have type %s", index, expectedType,
+		))
+	}
+	if val(input.AttributeName) == "" {
+		errs = append(errs, newValidationErrorf(
+			"KeySchema[%d] has no AttributeName", index,
+		))
+	}
 	return errors.Join(errs...)
 }
 

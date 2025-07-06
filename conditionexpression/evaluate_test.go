@@ -11,6 +11,8 @@ import (
 )
 
 func TestExpression_Evaluate(t *testing.T) {
+	t.Parallel()
+
 	type TestCase struct {
 		Name      string
 		Condition string
@@ -441,7 +443,7 @@ func TestExpression_Evaluate(t *testing.T) {
 			Name:      "size of string, result true",
 			Condition: "size (Brand) <= :v_sub",
 			Item: map[string]*dynamodb.AttributeValue{
-				"Brand": {S: ptr("a a a a a a a")},
+				"Brand": {S: ptr("a b c d e f g")},
 			},
 			Values: map[string]*dynamodb.AttributeValue{
 				":v_sub": {N: ptr("100")},
@@ -532,6 +534,7 @@ func TestExpression_Evaluate(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
+			t.Parallel()
 			expr, err := conditionexpression.Parse(tc.Condition)
 			require.NoError(t, err)
 			result, err := expr.Evaluate(tc.Item, tc.Names, tc.Values)

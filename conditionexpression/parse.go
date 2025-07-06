@@ -25,7 +25,7 @@ type Expression struct {
 func Parse(s string) (Expression, error) {
 	// TODO: enforce length limits defined here:
 	//       https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Constraints.html#limits-expression-parameters
-	p := &parser{
+	p := &parser{ //nolint:exhaustruct
 		Buffer: s,
 		Pretty: true,
 	}

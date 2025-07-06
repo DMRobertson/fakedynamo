@@ -52,6 +52,7 @@ func makeTestDB(t *testing.T) dynamodbiface.DynamoDBAPI {
 // at test cleanup to remove any tables that were created by tests.
 type autocleaningDynamoDB struct {
 	dynamodbiface.DynamoDBAPI
+
 	t *testing.T
 }
 

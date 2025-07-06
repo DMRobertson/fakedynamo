@@ -54,6 +54,8 @@ func TestParser_Parse(t *testing.T) {
 }
 
 func TestParser_Parse_RejectsOversizedMembershipTest(t *testing.T) {
+	t.Parallel()
+
 	inListOfSize := func(count int) string {
 		var builder strings.Builder
 		builder.WriteString("Name IN (:val")

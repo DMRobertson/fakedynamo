@@ -188,6 +188,7 @@ func TestDB_CreateTable_ValidationErrors(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
+			t.Parallel()
 			db := makeTestDB(t)
 			_, err := db.CreateTable(&tc.Input)
 			assertErrorContains(t, err, tc.ExpectErrorMessages...)

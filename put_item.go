@@ -80,29 +80,37 @@ func (d *DB) validateItemMatchesSchema(item avmap, t table) error {
 
 	for attrName, definedType := range t.schema.types {
 		if attrVal := item[attrName]; attrVal != nil {
-			switch definedType {
-			case dynamodb.ScalarAttributeTypeS:
-				if attrVal.S == nil {
-					errs = append(errs, newValidationErrorf("Type mismatch for Item.%s: defined to have type S", attrName))
-				} else if len(*attrVal.S) == 0 {
-					errs = append(errs, newValidationErrorf("Item.%s.S cannot be empty", attrName))
-				}
-			case dynamodb.ScalarAttributeTypeB:
-				if attrVal.B == nil {
-					errs = append(errs, newValidationErrorf("Type mismatch for Item.%s: defined to have type B", attrName))
-				} else if len(attrVal.B) == 0 {
-					errs = append(errs, newValidationErrorf("Item.%s.B cannot be empty", attrName))
-				}
-			case dynamodb.ScalarAttributeTypeN:
-				if attrVal.N == nil {
-					errs = append(errs, newValidationErrorf("Type mismatch for Item.%s: defined to have type N", attrName))
-				} else if len(*attrVal.N) == 0 {
-					errs = append(errs, newValidationErrorf("Item.%s.N must be interpretable as a number", attrName))
-				}
+			err := checkAttributeType(definedType, attrVal)
+			if err != nil {
+				errs = append(errs, newValidationErrorf("Item.%s: %s", attrName, err.Error()))
 			}
 		}
 	}
 	return errors.Join(errs...)
+}
+
+func checkAttributeType(definedType string, attrVal *dynamodb.AttributeValue) error {
+	switch definedType {
+	case dynamodb.ScalarAttributeTypeS:
+		if attrVal.S == nil {
+			return errors.New("type mismatch, defined to have type S")
+		} else if len(*attrVal.S) == 0 {
+			return errors.New("cannot be empty string")
+		}
+	case dynamodb.ScalarAttributeTypeB:
+		if attrVal.B == nil {
+			return errors.New("type mismatch, defined to have type B")
+		} else if len(attrVal.B) == 0 {
+			return errors.New("cannot be empty binary string")
+		}
+	case dynamodb.ScalarAttributeTypeN:
+		if attrVal.N == nil {
+			return errors.New("type mismatch, defined to have type N")
+		} else if len(*attrVal.N) == 0 {
+			return errors.New("must be interpretable as a number")
+		}
+	}
+	return nil
 }
 
 func validatePutItemInputMap(item avmap, fieldPath string) error {

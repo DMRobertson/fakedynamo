@@ -226,6 +226,7 @@ func Test_PutItem_ValidationErrors(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
+			t.Parallel()
 			if dynamodbSession != nil && tc.SkipLocal != "" {
 				t.Skip(tc.SkipLocal)
 			}

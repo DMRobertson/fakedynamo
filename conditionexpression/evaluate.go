@@ -13,19 +13,19 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-type errNoSuchAttribute struct {
+type noSuchAttributeError struct {
 	Key string
 }
 
-func (e errNoSuchAttribute) Error() string {
+func (e noSuchAttributeError) Error() string {
 	return fmt.Sprintf("no such attribute '%s'", e.Key)
 }
 
-type errNoSuchIndex struct {
+type noSuchIndexError struct {
 	Index int
 }
 
-func (e errNoSuchIndex) Error() string {
+func (e noSuchIndexError) Error() string {
 	return fmt.Sprintf("no such index '%d'", e.Index)
 }
 
@@ -269,11 +269,12 @@ func (e Expression) evaluate(
 func (e Expression) compare(val1 dynamodb.AttributeValue, operator string, val2 dynamodb.AttributeValue) (bool, error) {
 	t1 := attrType(val1)
 	t2 := attrType(val2)
-	if t1 == "" {
+	switch {
+	case t1 == "":
 		return false, errors.New("no value specified in LHS of comparison")
-	} else if t2 == "" {
+	case t2 == "":
 		return false, errors.New("no value specified in RHS of comparison")
-	} else if t1 != t2 {
+	case t1 != t2:
 		return false, fmt.Errorf("type mismatch: %s %s %s", t1, operator, t2)
 	}
 
@@ -406,7 +407,7 @@ func (e Expression) walkDocumentPath(node *node32,
 				key := e.text(node.up)
 				cursor, exists = cursor.M[key]
 				if !exists {
-					return nil, errNoSuchAttribute{Key: key}
+					return nil, noSuchAttributeError{Key: key}
 				}
 				node = node.next
 				if path != "" {
@@ -425,7 +426,7 @@ func (e Expression) walkDocumentPath(node *node32,
 
 				cursor, exists = cursor.M[*key]
 				if !exists {
-					return nil, errNoSuchAttribute{Key: *key}
+					return nil, noSuchAttributeError{Key: *key}
 				}
 				node = node.next
 				path += *key
@@ -445,7 +446,7 @@ func (e Expression) walkDocumentPath(node *node32,
 			}
 
 			if len(cursor.L) < i+1 {
-				return nil, errNoSuchIndex{Index: i}
+				return nil, noSuchIndexError{Index: i}
 			}
 			cursor = cursor.L[i]
 			node = node.next
@@ -464,7 +465,7 @@ func (e Expression) attributeExists(
 	names map[string]*string,
 ) (bool, error) {
 	_, err := e.walkDocumentPath(node.up.up, item, names)
-	if errors.As(err, &errNoSuchAttribute{}) || errors.As(err, &errNoSuchIndex{}) {
+	if errors.As(err, &noSuchAttributeError{}) || errors.As(err, &noSuchIndexError{}) { //nolint:exhaustruct
 		return false, nil
 	} else if err != nil {
 		return false, err

@@ -2,16 +2,54 @@ version: "2"
 linters:
   default: all
   disable:
-    - varnamelen
-    - wsl
-    - wsl_v5
+    # Mainly these are linters enforcing style rather than correctness.
+    - cyclop           # function complexity
+    - depguard         # Don't need this enforcement
+    - err113           # Later
+    - funlen           # function complexity
+    - gochecknoglobals # unhelpful complaints about pkg-internal slices
+    - gocognit         # function complexity
+    - gocyclo          # function complexity
+    - godox            # Complains about TODO comments
+    - ireturn          # Complains about ptr and val helpers, unhelpful
+    - lll              # line length
+    - maintidx         # function complexity
+    - mnd              # forbids magic numbers. I think that encourages over-consting
+    - nlreturn         # Newlines before returns
+    - noinlineerr      # No if err:= ... ; err != nil {}
+    - varnamelen       # Complains about short var names
+    - wsl              # Whitespace linting
+    - wsl_v5           # Whitespace linting
   exclusions:
     generated: lax
+    warn-unused: true
+    rules:
+      - path: _test\.go
+        linters:
+          - funlen
+          - gochecknoinits
+          - gochecknoglobals
+          - maintidx
+          - wrapcheck
   settings:
+    exhaustive:
+      default-signifies-exhaustive: true
+    exhaustruct:
+      exclude:
+        - 'github.com/aws/aws-sdk-go/aws.Config'
+        - 'github.com/aws/aws-sdk-go/service/dynamodb\..*'
+        - '.*\.[Tt]estCase'
     testifylint:
       enable-all: true
       disable:
+        # Sometimes we're okay with `assert.Error` instead of `require.Error`.
         - require-error
+    revive:
+      rules:
+        # It's good to remind us to document public strings, but I don't care
+        # about redocumenting the entire DynamoDB API.
+        - name: exported
+          disabled: true
 formatters:
   enable:
     - gofumpt

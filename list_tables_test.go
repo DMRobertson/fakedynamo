@@ -21,7 +21,7 @@ func TestDB_ListTables_ValidationErrors(t *testing.T) {
 	assertErrorContains(t, err, "Limit", "100")
 }
 
-func TestDB_ListTables_Pagination(t *testing.T) {
+func TestDB_ListTables_Pagination(t *testing.T) { //nolint:paralleltest
 	// Note: test not run in parallel with others so that we know exactly what
 	// tables to expect.
 	db := makeTestDB(t)
@@ -71,7 +71,9 @@ func TestDB_ListTables_Pagination(t *testing.T) {
 	assert.Len(t, result3.TableNames, 10)
 	assert.Nil(t, result3.LastEvaluatedTableName)
 
-	allNames := append(result1.TableNames, result2.TableNames...)
+	allNames := make([]*string, 0, 210)
+	allNames = append(allNames, result1.TableNames...)
+	allNames = append(allNames, result2.TableNames...)
 	allNames = append(allNames, result3.TableNames...)
 	// Dynamo doesn't guarantee the iteration order, so we don't impose that
 	// either.

@@ -38,6 +38,7 @@ type DB struct {
 
 func NewDB() *DB {
 	return &DB{
+		mu:     sync.RWMutex{},
 		tables: btree.NewG(2, tableLess),
 	}
 }
@@ -78,7 +79,7 @@ type tableSchema struct {
 }
 
 func tableKey(name string) table {
-	return table{spec: &dynamodb.CreateTableInput{
+	return table{spec: &dynamodb.CreateTableInput{ //nolint:exhaustruct
 		TableName: &name,
 	}}
 }
@@ -125,7 +126,6 @@ func makeRecordLess(schema tableSchema) btree.LessFunc[avmap] {
 		return func(a, b avmap) bool {
 			return partitionLess(a, b) || bytes.Compare(a[schema.sort].B, b[schema.sort].B) < 0
 		}
-	default:
 	}
 	panic("unreachable")
 }
