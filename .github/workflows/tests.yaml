@@ -26,7 +26,7 @@ jobs:
       - name: Run tests against in-memory implementation
         run: |
           set -euo pipefail
-          go test -count 1 -json -v ./... 2>&1 | tee /tmp/test-memory.json | gotestfmt
+          go test -count 1 -json -v . 2>&1 | tee /tmp/test-memory.json | gotestfmt
         continue-on-error: true
 
       - name: Annotate tests
