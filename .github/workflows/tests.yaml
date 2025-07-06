@@ -10,6 +10,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
@@ -17,6 +18,12 @@ jobs:
 
       - name: Download dependencies
         run: go mod download
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@4f58623b88e35c8172c05b70ed3b93ee8a1bfdd1 # v8
+        with:
+          version: v2.1
+        continue-on-error: true
 
       - name: Set up gotestfmt
         uses: GoTestTools/gotestfmt-action@8b4478c7019be847373babde9300210e7de34bfb # v2.2.0
