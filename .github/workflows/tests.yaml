@@ -5,7 +5,23 @@ on:
     branches: [main]
 
 jobs:
-  tests:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.24
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@4f58623b88e35c8172c05b70ed3b93ee8a1bfdd1 # v8
+        with:
+          version: v2.2.1
+
+  test-memory:
     runs-on: ubuntu-latest
 
     steps:
@@ -19,12 +35,6 @@ jobs:
       - name: Download dependencies
         run: go mod download
 
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@4f58623b88e35c8172c05b70ed3b93ee8a1bfdd1 # v8
-        with:
-          version: v2.1
-        continue-on-error: true
-
       - name: Set up gotestfmt
         uses: GoTestTools/gotestfmt-action@8b4478c7019be847373babde9300210e7de34bfb # v2.2.0
         with:
@@ -34,13 +44,25 @@ jobs:
         run: |
           set -euo pipefail
           go test -count 1 -json -v . 2>&1 | tee /tmp/test-memory.json | gotestfmt
-        continue-on-error: true
 
       - name: Annotate tests
         if: always()
         uses: guyarb/golang-test-annotations@2941118d7ef622b1b3771d1ff6eae9e90659eb26 # v0.8.0
         with:
           test-results: /tmp/test-memory.json
+
+  test-ddblocal:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.24
+
+      - name: Download dependencies
+        run: go mod download
 
       - name: Run DynamoDB local
         run: |
