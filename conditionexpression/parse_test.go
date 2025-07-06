@@ -73,6 +73,13 @@ func TestParser_Parse_RejectsOversizedMembershipTest(t *testing.T) {
 	assert.ErrorContains(t, err, "too many arguments to IN expression")
 }
 
+func TestParser_Parse_RejectsReservedWords(t *testing.T) {
+	t.Parallel()
+
+	_, err := conditionexpression.Parse("Array = :s")
+	assert.ErrorContains(t, err, "reserved")
+}
+
 func ptr[T any](v T) *T {
 	return &v
 }
