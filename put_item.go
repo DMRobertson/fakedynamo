@@ -38,7 +38,11 @@ func (d *DB) PutItem(input *dynamodb.PutItemInput) (*dynamodb.PutItemOutput, err
 	if input.TableName == nil {
 		errs = append(errs, newValidationError("TableName is a required field"))
 		return nil, errors.Join(errs...)
-	} else if t, exists = d.tables.Get(tableKey(*input.TableName)); !exists {
+	}
+
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	if t, exists = d.tables.Get(tableKey(*input.TableName)); !exists {
 		errs = append(errs, &dynamodb.ResourceNotFoundException{})
 	}
 

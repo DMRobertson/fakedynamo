@@ -36,6 +36,8 @@ func (d *DB) CreateTable(input *dynamodb.CreateTableInput) (*dynamodb.CreateTabl
 		return nil, err
 	}
 
+	d.mu.Lock()
+	defer d.mu.Unlock()
 	if d.tables.Has(tableKey(*input.TableName)) {
 		return nil, &dynamodb.ResourceInUseException{}
 	}

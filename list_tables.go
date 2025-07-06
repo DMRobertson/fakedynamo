@@ -20,6 +20,8 @@ func (d *DB) ListTables(input *dynamodb.ListTablesInput) (*dynamodb.ListTablesOu
 	output := dynamodb.ListTablesOutput{
 		TableNames: []*string{},
 	}
+	d.mu.RLock()
+	defer d.mu.RUnlock()
 	d.tables.AscendGreaterOrEqual(start, func(t table) bool {
 		if *t.spec.TableName == *start.spec.TableName {
 			// Ignore the previous ExclusiveStartTableName

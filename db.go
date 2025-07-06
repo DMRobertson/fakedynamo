@@ -20,6 +20,7 @@ package fakedynamo
 import (
 	"bytes"
 	"cmp"
+	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -27,6 +28,8 @@ import (
 )
 
 type DB struct {
+	// mu guards access to tables.
+	mu sync.RWMutex
 	// tables tracks the tables stored in the database. It's a BTree rather than
 	// a plain map, because ListTables needs to be able to paginate through in a
 	// consistent order.

@@ -2,6 +2,8 @@ package fakedynamo_test
 
 import (
 	"slices"
+	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -20,18 +22,31 @@ func TestDB_ListTables_ValidationErrors(t *testing.T) {
 }
 
 func TestDB_ListTables_Pagination(t *testing.T) {
-	// Note: not Parallel so that we know exactly what tables to expect.
+	// Note: test not run in parallel with others so that we know exactly what
+	// tables to expect.
 	db := makeTestDB(t)
 	expectedNames := make([]*string, 210)
+	var failed atomic.Bool
+	var wg sync.WaitGroup
+
 	for i := range expectedNames {
 		input := exampleCreateTableInputCompositePrimaryKey()
 		expectedNames[i] = input.TableName
-		_, err := db.CreateTable(input)
-		require.NoError(t, err)
-		if err != nil {
-			t.FailNow()
-		}
+		wg.Add(1)
+
+		// Fire off the CreateTable calls asynchronously since this speeds up
+		// the tests running under DynamoDB local.
+		go func() {
+			defer wg.Done()
+			_, err := db.CreateTable(input)
+			if !assert.NoError(t, err) {
+				failed.Store(true)
+			}
+		}()
 	}
+
+	wg.Wait()
+	require.False(t, failed.Load(), "at least one CreateTable call failed")
 
 	result1, err := db.ListTables(&dynamodb.ListTablesInput{})
 	assert.NoError(t, err)

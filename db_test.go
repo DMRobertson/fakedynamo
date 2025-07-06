@@ -1,12 +1,8 @@
 package fakedynamo_test
 
 import (
-	"cmp"
-	"errors"
 	"os"
 	"strconv"
-	"strings"
-	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -17,7 +13,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
-	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -39,39 +34,9 @@ func init() {
 	}
 }
 
-func TestMain(m *testing.M) {
-	retval := m.Run()
-
-	if dynamodbSession != nil {
-		var wg sync.WaitGroup
-
-		db := dynamodb.New(dynamodbSession)
-		for {
-			result, err := db.ListTables(&dynamodb.ListTablesInput{})
-			if err != nil {
-				panic(err)
-			}
-			if len(result.TableNames) == 0 {
-				break
-			}
-			for _, tableName := range result.TableNames {
-				wg.Add(1)
-				go func() {
-					defer wg.Done()
-					_, err := db.DeleteTable(&dynamodb.DeleteTableInput{
-						TableName: tableName,
-					})
-					if err != nil {
-						panic(err)
-					}
-				}()
-			}
-		}
-	}
-
-	os.Exit(retval)
-}
-
+// makeTestDB produces a new [dynamodbiface.DynamoDBAPI] implementation ready
+// for testing. If testing against DynamoDB local, we attempt to automatically
+// delete the table at the end of the test.
 func makeTestDB(t *testing.T) dynamodbiface.DynamoDBAPI {
 	t.Helper()
 	if dynamodbSession != nil {
@@ -83,6 +48,8 @@ func makeTestDB(t *testing.T) dynamodbiface.DynamoDBAPI {
 	return fakedynamo.NewDB()
 }
 
+// autocleaningDynamoDB is a wrapper which calls [dynamodbiface.DynamoDBAPI.DeleteTable]
+// at test cleanup to remove any tables that were created by tests.
 type autocleaningDynamoDB struct {
 	dynamodbiface.DynamoDBAPI
 	t *testing.T
@@ -100,27 +67,4 @@ func (db autocleaningDynamoDB) CreateTable(input *dynamodb.CreateTableInput) (*d
 func nonce() string {
 	value := nonceCounter.Add(1)
 	return strconv.Itoa(int(value))
-}
-
-func ptr[T any](v T) *T {
-	return &v
-}
-
-func val[T any](p *T) T {
-	return *p
-}
-
-func comparePtr[T cmp.Ordered](a, b *T) int {
-	return cmp.Compare(*a, *b)
-}
-
-func assertErrorContains(t *testing.T, err error, needles ...string) {
-	t.Helper()
-	if !assert.Error(t, err) {
-		return
-	}
-	for _, needle := range needles {
-		err = errors.New(strings.ToLower(err.Error()))
-		assert.ErrorContains(t, err, strings.ToLower(needle))
-	}
 }

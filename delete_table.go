@@ -10,12 +10,16 @@ func (d *DB) DeleteTable(input *dynamodb.DeleteTableInput) (*dynamodb.DeleteTabl
 	if input.TableName == nil {
 		return nil, newValidationError("TableName is a required field")
 	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
 	desc := d.describeTable(*input.TableName)
 	if desc == nil {
 		return nil, &dynamodb.ResourceNotFoundException{}
 	}
 
 	desc.TableStatus = ptr(dynamodb.TableStatusDeleting)
+
 	_, _ = d.tables.Delete(tableKey(*input.TableName))
 	return &dynamodb.DeleteTableOutput{
 		TableDescription: desc,

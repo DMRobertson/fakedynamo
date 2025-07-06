@@ -20,6 +20,8 @@ func (d *DB) GetItem(input *dynamodb.GetItemInput) (*dynamodb.GetItemOutput, err
 		return nil, err
 	}
 
+	d.mu.RLock()
+	defer d.mu.RUnlock()
 	t, exists := d.tables.Get(tableKey(*input.TableName))
 	if !exists {
 		return nil, &dynamodb.ResourceNotFoundException{}

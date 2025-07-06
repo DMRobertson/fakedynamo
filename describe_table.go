@@ -12,6 +12,8 @@ func (d *DB) DescribeTable(input *dynamodb.DescribeTableInput) (*dynamodb.Descri
 	if input.TableName == nil {
 		return nil, newValidationError("TableName is a required field")
 	}
+	d.mu.RLock()
+	defer d.mu.RUnlock()
 	desc := d.describeTable(*input.TableName)
 	if desc == nil {
 		return nil, &dynamodb.ResourceNotFoundException{}
@@ -21,6 +23,8 @@ func (d *DB) DescribeTable(input *dynamodb.DescribeTableInput) (*dynamodb.Descri
 	}, nil
 }
 
+// describeTable fetches a [dynamodb.TableDescription] for the given table.
+// The caller MUST ensure that mu is Locked or RLocked appropriately.
 func (d *DB) describeTable(tableName string) *dynamodb.TableDescription {
 	table, exists := d.tables.Get(tableKey(tableName))
 	if !exists {
