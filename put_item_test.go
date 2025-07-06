@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -15,7 +14,6 @@ func Test_PutItem_ValidationErrors(t *testing.T) {
 	type testCase struct {
 		Name      string
 		Input     dynamodb.PutItemInput
-		Setup     func(*testing.T, dynamodbiface.DynamoDBAPI, *testCase)
 		SkipLocal string
 
 		ExpectErrorMessages []string
@@ -23,57 +21,82 @@ func Test_PutItem_ValidationErrors(t *testing.T) {
 	}
 
 	hugeKey := string(make([]byte, 65536))
-	exampleSimpleTableSpec := exampleCreateTableInputSimplePrimaryKey()
-	exampleCompositeTableSpec := exampleCreateTableInputCompositePrimaryKey()
+
+	exampleSimpleTable := exampleCreateTableInputSimplePrimaryKey()
+	exampleCompositeTable := exampleCreateTableInputCompositePrimaryKey()
+	exampleSimpleBinaryTable := exampleCreateTableInputSimplePrimaryKey()
+	exampleSimpleBinaryTable.AttributeDefinitions[0].AttributeType = ptr(dynamodb.ScalarAttributeTypeB)
+	exampleSimpleNumberTable := exampleCreateTableInputSimplePrimaryKey()
+	exampleSimpleNumberTable.AttributeDefinitions[0].AttributeType = ptr(dynamodb.ScalarAttributeTypeN)
+
+	db := makeTestDB(t)
+	for _, spec := range []*dynamodb.CreateTableInput{
+		exampleSimpleTable, exampleCompositeTable, exampleSimpleBinaryTable, exampleSimpleNumberTable,
+	} {
+		_, err := db.CreateTable(spec)
+		require.NoError(t, err)
+	}
 
 	testCases := []testCase{
 		{
-			Name:                "Returns ValidationException when Item is missing",
-			Input:               dynamodb.PutItemInput{},
+			Name: "Returns ValidationException when Item is missing",
+			Input: dynamodb.PutItemInput{
+				TableName: exampleSimpleTable.TableName,
+			},
 			ExpectErrorMessages: []string{"Item", "required field"},
 		},
 		{
-			Name:      "Returns ValidationException when Item keys are oversized",
-			SkipLocal: "Oversized item keys never get a response from DynamoDB Local",
+			Name: "Returns ValidationException when Item keys are oversized",
+			// SkipLocal: "Oversized item keys never get a response from DynamoDB Local",
 			Input: dynamodb.PutItemInput{
-				Item:      map[string]*dynamodb.AttributeValue{hugeKey: nil},
-				TableName: ptr("a"),
+				Item: map[string]*dynamodb.AttributeValue{
+					"Foo":   {NULL: ptr(true)},
+					hugeKey: {S: ptr("a")},
+				},
+				TableName: exampleSimpleTable.TableName,
 			},
-			ExpectErrorMessages: []string{"key too large, max 65535 characters"},
+			ExpectErrorMessages: []string{"ValidationException", "attribute", "name", "6553"},
 		},
 		{
-			// TODO: ddb local seems to hang when given a dummy table name.
-			//       create a dedicated table for this test.
-			Name: "Returns ValidationException when Item value is nil",
+			Name:      "Returns ValidationException when Item value is nil",
+			SkipLocal: "Nil attributes never get a response from DynamoDB Local",
 			Input: dynamodb.PutItemInput{
-				Item: map[string]*dynamodb.AttributeValue{"123": nil},
+				Item: map[string]*dynamodb.AttributeValue{
+					"Foo": nil,
+				},
+				TableName: exampleSimpleTable.TableName,
 			},
-			ExpectErrorMessages: []string{"Item.123 is nil"},
+			ExpectErrorMessages: []string{"Item.Foo is nil"},
 		},
 		{
 			Name: "Returns ValidationException when Item value has no types",
 			Input: dynamodb.PutItemInput{
-				Item: map[string]*dynamodb.AttributeValue{"123": {}},
+				Item:      map[string]*dynamodb.AttributeValue{"Foo": {}},
+				TableName: exampleSimpleTable.TableName,
 			},
-			ExpectErrorMessages: []string{"Item.123 must have exactly 1 data type specified"},
+			ExpectErrorMessages: []string{"exactly", "data", "type"},
 		},
 		{
 			Name: "Returns ValidationException when Item value has multiple types",
 			Input: dynamodb.PutItemInput{
-				Item: map[string]*dynamodb.AttributeValue{"123": {
+				Item: map[string]*dynamodb.AttributeValue{"Foo": {
 					S: ptr("123"),
 					N: ptr("123"),
 				}},
+				TableName: exampleSimpleTable.TableName,
 			},
-			ExpectErrorMessages: []string{"Item.123 must have exactly 1 data type specified"},
+			ExpectErrorMessages: []string{"exactly", "data", "type"},
 		},
 		{
 			Name: "Returns ValidationException when list elements are invalid",
 			Input: dynamodb.PutItemInput{
 				Item: map[string]*dynamodb.AttributeValue{
-					"A": {L: []*dynamodb.AttributeValue{{S: ptr("B"), N: ptr("3")}}}},
+					"Foo": {L: []*dynamodb.AttributeValue{
+						{S: ptr("B"), N: ptr("3")}}},
+				},
+				TableName: exampleSimpleTable.TableName,
 			},
-			ExpectErrorMessages: []string{"Item.A[0] must have exactly 1 data type specified"},
+			ExpectErrorMessages: []string{"data", "type", "exactly"},
 		},
 		{
 			Name: "Returns ValidationException when map elements are invalid",
@@ -83,14 +106,16 @@ func Test_PutItem_ValidationErrors(t *testing.T) {
 						hugeKey: {S: ptr("B")},
 					}},
 				},
+				TableName: exampleSimpleTable.TableName,
 			},
-			ExpectErrorMessages: []string{"key too large, max 65535 characters"},
+			ExpectErrorMessages: []string{"65536"},
 		},
-
 		{
-			Name:                "Returns ValidationException when TableName is missing",
-			Input:               dynamodb.PutItemInput{},
-			ExpectErrorMessages: []string{"TableName is a required field"},
+			Name: "Returns ValidationException when TableName is missing",
+			Input: dynamodb.PutItemInput{
+				Item: map[string]*dynamodb.AttributeValue{},
+			},
+			ExpectErrorMessages: []string{"Table", "Name", "required field"},
 		},
 		{
 			Name: "Returns ResourceNotFoundException when table does not exist",
@@ -102,145 +127,99 @@ func Test_PutItem_ValidationErrors(t *testing.T) {
 		{
 			Name: "Returns ValidationException for invalid ReturnValues",
 			Input: dynamodb.PutItemInput{
+				Item:         map[string]*dynamodb.AttributeValue{},
+				TableName:    exampleSimpleTable.TableName,
 				ReturnValues: ptr("POTATO"),
 			},
-			ExpectErrorMessages: []string{"ReturnValues must be NONE or ALL_OLD"},
+			ExpectErrorMessages: []string{"ValidationException", "Return", "Values"},
 		},
 		{
 			Name: "Returns ValidationException for invalid ReturnValuesOnConditionCheckFailure",
 			Input: dynamodb.PutItemInput{
-				ReturnValues: ptr("POTATO"),
+				Item: map[string]*dynamodb.AttributeValue{
+					"Foo": {S: ptr("hello")},
+				},
+				TableName:                           exampleSimpleTable.TableName,
+				ReturnValuesOnConditionCheckFailure: ptr("POTATO"),
 			},
-			ExpectErrorMessages: []string{"ReturnValuesOnConditionCheckFailure must be NONE or ALL_OLD"},
+			ExpectErrorMessages: []string{"ValidationException", "ReturnValuesOnConditionCheckFailure"},
 		},
 		{
 			Name: "Returns ValidationException when partition key is missing",
-			Setup: func(t *testing.T, db dynamodbiface.DynamoDBAPI, tc *testCase) {
-				_, err := db.CreateTable(exampleSimpleTableSpec)
-				require.NoError(t, err)
-			},
 			Input: dynamodb.PutItemInput{
 				Item:      map[string]*dynamodb.AttributeValue{},
-				TableName: exampleSimpleTableSpec.TableName,
+				TableName: exampleSimpleTable.TableName,
 			},
 			ExpectErrorMessages: []string{"ValidationException", "required key"},
 		},
 		{
 			Name: "Returns ValidationException when sort key is missing",
-			Setup: func(t *testing.T, db dynamodbiface.DynamoDBAPI, tc *testCase) {
-				_, err := db.CreateTable(exampleCompositeTableSpec)
-				require.NoError(t, err)
-			},
 			Input: dynamodb.PutItemInput{
 				Item:      map[string]*dynamodb.AttributeValue{},
-				TableName: exampleCompositeTableSpec.TableName,
+				TableName: exampleCompositeTable.TableName,
 			},
 			ExpectErrorMessages: []string{"ValidationException", "required key"},
 		},
 		{
 			Name: "Returns ValidationException on String key type mismatch",
-			Setup: func(t *testing.T, db dynamodbiface.DynamoDBAPI, tc *testCase) {
-				_, err := db.CreateTable(exampleSimpleTableSpec)
-				require.NoError(t, err)
-			},
 			Input: dynamodb.PutItemInput{
 				Item: map[string]*dynamodb.AttributeValue{
 					"Foo": {N: ptr("123")},
 				},
-				TableName: exampleSimpleTableSpec.TableName,
+				TableName: exampleSimpleTable.TableName,
 			},
 			ExpectErrorMessages: []string{"ValidationException", "Type mismatch"},
 		},
 		{
 			Name: "Returns ValidationException on String key with empty value",
-			Setup: func(t *testing.T, db dynamodbiface.DynamoDBAPI, tc *testCase) {
-				_, err := db.CreateTable(exampleSimpleTableSpec)
-				require.NoError(t, err)
-			},
 			Input: dynamodb.PutItemInput{
 				Item: map[string]*dynamodb.AttributeValue{
 					"Foo": {S: ptr("")},
 				},
-				TableName: exampleSimpleTableSpec.TableName,
+				TableName: exampleSimpleTable.TableName,
 			},
-			ExpectErrorMessages: []string{"Item.Foo.S cannot be empty"},
+			ExpectErrorMessages: []string{"Foo", "empty"},
 		},
 		{
 			Name: "Returns ValidationException on Binary key type mismatch",
-			Setup: func(t *testing.T, db dynamodbiface.DynamoDBAPI, tc *testCase) {
-				spec := exampleSimpleTableSpec
-				spec.AttributeDefinitions = []*dynamodb.AttributeDefinition{
-					{
-						AttributeName: ptr("Foo"),
-						AttributeType: ptr(dynamodb.ScalarAttributeTypeB),
-					},
-				}
-				_, err := db.CreateTable(spec)
-				require.NoError(t, err)
-			},
 			Input: dynamodb.PutItemInput{
 				Item: map[string]*dynamodb.AttributeValue{
 					"Foo": {S: ptr("123")},
 				},
-				TableName: exampleSimpleTableSpec.TableName,
+				TableName: exampleSimpleBinaryTable.TableName,
 			},
 			ExpectErrorMessages: []string{"ValidationException", "Type mismatch"},
 		},
 		{
 			Name: "Returns ValidationException on Binary key with empty value",
-			Setup: func(t *testing.T, db dynamodbiface.DynamoDBAPI, tc *testCase) {
-				spec := exampleSimpleTableSpec
-				spec.AttributeDefinitions = []*dynamodb.AttributeDefinition{
-					{
-						AttributeName: ptr("Foo"),
-						AttributeType: ptr(dynamodb.ScalarAttributeTypeB),
-					},
-				}
-				_, err := db.CreateTable(spec)
-				require.NoError(t, err)
-			},
+
 			Input: dynamodb.PutItemInput{
 				Item: map[string]*dynamodb.AttributeValue{
 					"Foo": {B: []byte{}},
 				},
-				TableName: exampleSimpleTableSpec.TableName,
+				TableName: exampleSimpleBinaryTable.TableName,
 			},
-			ExpectErrorMessages: []string{"Item.Foo.B cannot be empty"},
+			ExpectErrorMessages: []string{"ValidationException", "Foo", "empty"},
 		},
 		{
 			Name: "Returns ValidationException on Number key type mismatch",
-			Setup: func(t *testing.T, db dynamodbiface.DynamoDBAPI, tc *testCase) {
-				spec := exampleSimpleTableSpec
-				spec.AttributeDefinitions = []*dynamodb.AttributeDefinition{
-					{
-						AttributeName: ptr("Foo"),
-						AttributeType: ptr(dynamodb.ScalarAttributeTypeN),
-					},
-				}
-				_, err := db.CreateTable(spec)
-				require.NoError(t, err)
-			},
 			Input: dynamodb.PutItemInput{
 				Item: map[string]*dynamodb.AttributeValue{
 					"Foo": {S: ptr("bar")},
 				},
-				TableName: exampleSimpleTableSpec.TableName,
+				TableName: exampleSimpleNumberTable.TableName,
 			},
 			ExpectErrorMessages: []string{"ValidationException", "Type mismatch"},
 		},
 		{
 			Name: "Returns ValidationException on Number key with empty value",
-			Setup: func(t *testing.T, db dynamodbiface.DynamoDBAPI, tc *testCase) {
-				_, err := db.CreateTable(exampleSimpleTableSpec)
-				require.NoError(t, err)
-			},
 			Input: dynamodb.PutItemInput{
 				Item: map[string]*dynamodb.AttributeValue{
 					"Foo": {N: ptr("")},
 				},
-				TableName: exampleSimpleTableSpec.TableName,
+				TableName: exampleSimpleNumberTable.TableName,
 			},
-			ExpectErrorMessages: []string{"Item.Foo.N cannot be empty"},
+			ExpectErrorMessages: []string{"ValidationException", "number"},
 		},
 	}
 
@@ -248,10 +227,6 @@ func Test_PutItem_ValidationErrors(t *testing.T) {
 		t.Run(tc.Name, func(t *testing.T) {
 			if dynamodbSession != nil && tc.SkipLocal != "" {
 				t.Skip(tc.SkipLocal)
-			}
-			db := makeTestDB(t)
-			if tc.Setup != nil {
-				tc.Setup(t, db, &tc)
 			}
 
 			_, err := db.PutItem(&tc.Input)

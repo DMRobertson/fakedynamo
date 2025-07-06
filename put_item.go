@@ -22,7 +22,7 @@ func (d *DB) PutItem(input *dynamodb.PutItemInput) (*dynamodb.PutItemOutput, err
 	default:
 		errs = append(errs, newValidationError("ReturnValues must be NONE or ALL_OLD for PutItem"))
 	}
-	returnValuesOnConditionCheckFailure := valOr(input.ReturnValues, dynamodb.ReturnValueNone)
+	returnValuesOnConditionCheckFailure := valOr(input.ReturnValuesOnConditionCheckFailure, dynamodb.ReturnValueNone)
 	switch returnValuesOnConditionCheckFailure {
 	case dynamodb.ReturnValueNone:
 	case dynamodb.ReturnValueAllOld:
@@ -46,8 +46,11 @@ func (d *DB) PutItem(input *dynamodb.PutItemInput) (*dynamodb.PutItemOutput, err
 		errs = append(errs, &dynamodb.ResourceNotFoundException{})
 	}
 
-	errs = append(errs, d.validateItemMatchesSchema(input.Item, t))
 	if err := errors.Join(errs...); err != nil {
+		return nil, err
+	}
+
+	if err := d.validateItemMatchesSchema(input.Item, t); err != nil {
 		return nil, err
 	}
 
@@ -94,7 +97,7 @@ func (d *DB) validateItemMatchesSchema(item avmap, t table) error {
 				if attrVal.N == nil {
 					errs = append(errs, newValidationErrorf("Type mismatch for Item.%s: defined to have type N", attrName))
 				} else if len(*attrVal.N) == 0 {
-					errs = append(errs, newValidationErrorf("Item.%s.N cannot be empty", attrName))
+					errs = append(errs, newValidationErrorf("Item.%s.N must be interpretable as a number", attrName))
 				}
 			}
 		}
@@ -111,7 +114,7 @@ func validatePutItemInputMap(item avmap, fieldPath string) error {
 	for key, element := range item {
 		if len(key) > 65535 {
 			errs = append(errs, newValidationErrorf(
-				"Item%s.%s(...) key too large, max 65535 characters", fieldPath, key[:100]))
+				"Item%s.%s(...) attribute name too large, must be less than 65536 characters", fieldPath, key[:100]))
 		}
 		err := validatePutItemInputAttributeValue(element, fmt.Sprintf("%s.%s", fieldPath, key))
 		if err != nil {
