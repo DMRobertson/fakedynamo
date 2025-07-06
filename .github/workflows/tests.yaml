@@ -18,11 +18,22 @@ jobs:
       - name: Download dependencies
         run: go mod download
 
-      - name: Test
-        uses: robherley/go-test-action@b19f6aadabfb1ad85079065b21aa2af132466468
+      - name: Set up gotestfmt
+        uses: GoTestTools/gotestfmt-action@8b4478c7019be847373babde9300210e7de34bfb # v2.2.0
         with:
-          testArguments: '-count 1 ./...'
+          version: 'v2.5.0'
+
+      - name: Run tests against in-memory implementation
+        run: |
+          set -euo pipefail
+          go test -count 1 -json -v ./... 2>&1 | tee /tmp/test-memory.json | gotestfmt
         continue-on-error: true
+
+      - name: Annotate tests
+        if: always()
+        uses: guyarb/golang-test-annotations@2941118d7ef622b1b3771d1ff6eae9e90659eb26 # v0.8.0
+        with:
+          test-results: /tmp/test-memory.json
 
       - name: Run DynamoDB local
         run: docker run --detach --publish 8000:8000 amazon/dynamodb-local
@@ -30,9 +41,15 @@ jobs:
       - name: Run main tests against DynamoDB local
         env:
           DYNAMODB_ENDPOINT: http://localhost:8000
-        with:
+        run: |
+          set -euo pipefail
+          go test -count 1 -json -v ./... 2>&1 | tee /tmp/test-ddblocal.json | gotestfmt
 
-          testArguments: '-count 1 .'
-        uses: robherley/go-test-action@b19f6aadabfb1ad85079065b21aa2af132466468
+      - name: Annotate tests
+        if: always()
+        uses: guyarb/golang-test-annotations@2941118d7ef622b1b3771d1ff6eae9e90659eb26 # v0.8.0
+        with:
+          test-results: /tmp/test-ddblocal.json
+
 
 
