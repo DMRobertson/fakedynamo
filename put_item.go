@@ -4,12 +4,19 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/DMRobertson/fakedynamo/conditionexpression"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 )
 
 func (d *DB) PutItem(input *dynamodb.PutItemInput) (*dynamodb.PutItemOutput, error) {
+	if input.Expected != nil {
+		return nil, errors.New("not implemented: PutItemInput.Expected (deprecated by DynamoDB)")
+	} else if input.ConditionalOperator != nil {
+		return nil, errors.New("not implemented: PutItemInput.ConditionalOperator (deprecated by DynamoDB)")
+	}
+
 	var errs []error
 	if err := validatePutItemInputMap(input.Item, ""); err != nil {
 		errs = append(errs, err)
@@ -30,8 +37,14 @@ func (d *DB) PutItem(input *dynamodb.PutItemInput) (*dynamodb.PutItemOutput, err
 		errs = append(errs, newValidationError("ReturnValuesOnConditionCheckFailure must be NONE or ALL_OLD for PutItem"))
 	}
 
-	// TODO: parse condition expression
-	// TODO: check condition expression before write
+	var conditionexpr *conditionexpression.Expression
+	if input.ConditionExpression != nil {
+		expr, err := conditionexpression.Parse(*input.ConditionExpression)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse condition expression: %s", err)
+		}
+		conditionexpr = &expr
+	}
 
 	var t table
 	var exists bool
@@ -54,13 +67,31 @@ func (d *DB) PutItem(input *dynamodb.PutItemInput) (*dynamodb.PutItemOutput, err
 		return nil, err
 	}
 
-	var output dynamodb.PutItemOutput
+	if conditionexpr != nil {
+		recordToEvaluate := map[string]*dynamodb.AttributeValue{}
+		if existing, exists := t.records.Get(input.Item); exists {
+			recordToEvaluate = existing
+		}
+		result, err := conditionexpr.Evaluate(recordToEvaluate, input.ExpressionAttributeNames, input.ExpressionAttributeValues)
+		if err != nil {
+			return nil, fmt.Errorf("error evaluating condition expression: %w", err)
+		}
+		if !result {
+			checkErr := &dynamodb.ConditionalCheckFailedException{}
+			if returnValuesOnConditionCheckFailure == dynamodb.ReturnValueAllOld {
+				checkErr.Item = recordToEvaluate
+			}
+			return nil, checkErr
+		}
+	}
+
+	output := &dynamodb.PutItemOutput{}
 	previous, replaced := t.records.ReplaceOrInsert(input.Item)
 	if replaced && returnValues == dynamodb.ReturnValueAllOld {
 		output.Attributes = previous
 	}
 
-	return &output, nil
+	return output, nil
 }
 
 func (d *DB) validateItemMatchesSchema(item avmap, t table) error {

@@ -3,6 +3,7 @@ package fakedynamo_test
 import (
 	"testing"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -304,4 +305,56 @@ func TestDB_PutItem_ReturnValues(t *testing.T) {
 	assert.NoError(t, err)
 	require.NotNil(t, getResult)
 	assert.Equal(t, recordD, getResult.Item)
+}
+
+func TestDB_PutItem_ConditionExpressionHandling(t *testing.T) {
+	db := makeTestDB(t)
+	createdTable, err := db.CreateTable(exampleCreateTableInputSimplePrimaryKey())
+	require.NoError(t, err)
+
+	// Use PutItem to replace a record; error because it does not already exist.
+	item := map[string]*dynamodb.AttributeValue{
+		"Foo": {S: ptr("foo")},
+	}
+	_, err = db.PutItem(&dynamodb.PutItemInput{
+		Item:                                item,
+		TableName:                           createdTable.TableDescription.TableName,
+		ConditionExpression:                 aws.String("attribute_exists(Foo)"),
+		ReturnValuesOnConditionCheckFailure: ptr(dynamodb.ReturnValueAllOld),
+	})
+	var checkFailError *dynamodb.ConditionalCheckFailedException
+	require.ErrorAs(t, err, &checkFailError)
+	assert.Empty(t, checkFailError.Item)
+
+	// Now write the item, conditional on it not existing. Should succeed.
+	_, err = db.PutItem(&dynamodb.PutItemInput{
+		Item:                                item,
+		TableName:                           createdTable.TableDescription.TableName,
+		ConditionExpression:                 aws.String("attribute_not_exists(Foo)"),
+		ReturnValuesOnConditionCheckFailure: ptr(dynamodb.ReturnValueAllOld),
+	})
+	require.NoError(t, err)
+
+	// Repeat the last write. Should fail.
+	_, err = db.PutItem(&dynamodb.PutItemInput{
+		Item:                                item,
+		TableName:                           createdTable.TableDescription.TableName,
+		ConditionExpression:                 aws.String("attribute_not_exists(Foo)"),
+		ReturnValuesOnConditionCheckFailure: ptr(dynamodb.ReturnValueAllOld),
+	})
+	require.ErrorAs(t, err, &checkFailError)
+	assert.Equal(t, item, checkFailError.Item)
+
+	// Now try a condition update which succeeds.
+	result, err := db.PutItem(&dynamodb.PutItemInput{
+		Item:                      item,
+		TableName:                 createdTable.TableDescription.TableName,
+		ConditionExpression:       aws.String("Foo = :foo AND attribute_not_exists(#bar)"),
+		ExpressionAttributeNames:  map[string]*string{"#bar": ptr("Bar")},
+		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{":foo": {S: ptr("foo")}},
+		ReturnValues:              ptr(dynamodb.ReturnValueAllOld),
+	})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Equal(t, item, result.Attributes)
 }
