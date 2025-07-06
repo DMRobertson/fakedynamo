@@ -36,7 +36,19 @@ jobs:
           test-results: /tmp/test-memory.json
 
       - name: Run DynamoDB local
-        run: docker run --detach --publish 8000:8000 amazon/dynamodb-local
+        run: |
+          docker run --detach --publish 8000:8000 amazon/dynamodb-local:2.6.1
+          # Wait for container to be ready. From https://stackoverflow.com/a/77373799:
+          attempt=0
+          while [ "$attempt" -lt 10 ]; do
+            status=$(curl -s -o /dev/null -I -w '%{http_code}' http://localhost:8000)
+            if [ "$status" -eq "400" ]; then
+              exit 0;
+            fi
+            sleep 1
+            attempt = $(( attempt + 1 ))
+          done
+        timeout-minutes: 1
 
       - name: Run main tests against DynamoDB local
         env:
