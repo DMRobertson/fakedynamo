@@ -41,7 +41,7 @@ func (d *DB) PutItem(input *dynamodb.PutItemInput) (*dynamodb.PutItemOutput, err
 	if input.ConditionExpression != nil {
 		expr, err := conditionexpression.Parse(*input.ConditionExpression)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse condition expression: %s", err)
+			return nil, fmt.Errorf("failed to parse condition expression: %w", err)
 		}
 		conditionexpr = &expr
 	}
@@ -67,7 +67,7 @@ func (d *DB) PutItem(input *dynamodb.PutItemInput) (*dynamodb.PutItemOutput, err
 		return nil, err
 	}
 
-	if conditionexpr != nil {
+	if conditionexpr != nil { //nolint:nestif
 		recordToEvaluate := map[string]*dynamodb.AttributeValue{}
 		if existing, exists := t.records.Get(input.Item); exists {
 			recordToEvaluate = existing

@@ -308,6 +308,7 @@ func TestDB_PutItem_ReturnValues(t *testing.T) {
 }
 
 func TestDB_PutItem_ConditionExpressionHandling(t *testing.T) {
+	t.Parallel()
 	db := makeTestDB(t)
 	createdTable, err := db.CreateTable(exampleCreateTableInputSimplePrimaryKey())
 	require.NoError(t, err)
