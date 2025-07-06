@@ -49,8 +49,9 @@ func TestDB_ListTables_Pagination(t *testing.T) {
 		}()
 	}
 
-	err := sem.Acquire(ctx, maxConcurrentRequests)
-	require.NoError(t, err, "at least one CreateTable call failed")
+	require.NoError(t, ctx.Err(), "at least one create table call failed")
+	err := sem.Acquire(context.Background(), maxConcurrentRequests)
+	require.NoError(t, err)
 
 	result1, err := db.ListTables(&dynamodb.ListTablesInput{})
 	assert.NoError(t, err)
