@@ -19,24 +19,10 @@ func TestDB_ListTables_ValidationErrors(t *testing.T) {
 	assertErrorContains(t, err, "Limit", "100")
 }
 
-func TestDB_ListTables_DefaultLimitSize(t *testing.T) {
-	t.Parallel()
-	db := makeTestDB(t)
-	for range 200 {
-		input := exampleCreateTableInputCompositePrimaryKey()
-		_, err := db.CreateTable(input)
-		require.NoError(t, err)
-	}
-
-	result, err := db.ListTables(&dynamodb.ListTablesInput{})
-	assert.NoError(t, err)
-	assert.Len(t, result.TableNames, 100)
-}
-
 func TestDB_ListTables_Pagination(t *testing.T) {
-	t.Parallel()
+	// Note: not Parallel so that we know exactly what tables to expect.
 	db := makeTestDB(t)
-	expectedNames := make([]*string, 250)
+	expectedNames := make([]*string, 210)
 	for i := range expectedNames {
 		input := exampleCreateTableInputCompositePrimaryKey()
 		expectedNames[i] = input.TableName
@@ -50,6 +36,7 @@ func TestDB_ListTables_Pagination(t *testing.T) {
 	result1, err := db.ListTables(&dynamodb.ListTablesInput{})
 	assert.NoError(t, err)
 	require.NotNil(t, result1)
+	// NB: this tests that the default value for Limit is 100.
 	assert.Len(t, result1.TableNames, 100)
 	require.NotNil(t, result1.LastEvaluatedTableName)
 
@@ -66,7 +53,7 @@ func TestDB_ListTables_Pagination(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	require.NotNil(t, result3)
-	assert.Len(t, result3.TableNames, 50)
+	assert.Len(t, result3.TableNames, 10)
 	assert.Nil(t, result3.LastEvaluatedTableName)
 
 	allNames := append(result1.TableNames, result2.TableNames...)
@@ -76,30 +63,21 @@ func TestDB_ListTables_Pagination(t *testing.T) {
 	slices.SortFunc(allNames, comparePtr[string])
 	slices.SortFunc(expectedNames, comparePtr[string])
 	assert.Equal(t, expectedNames, allNames)
-}
 
-func TestDB_ListTablesPages(t *testing.T) {
-	t.Parallel()
-	db := makeTestDB(t)
-	expectedNames := make([]*string, 250)
-	for i := range expectedNames {
-		input := exampleCreateTableInputCompositePrimaryKey()
-		expectedNames[i] = input.TableName
-		_, err := db.CreateTable(input)
-		require.NoError(t, err)
-	}
+	// Now repeat the test using ListTablesPages.
+	// (This avoids having to recreate new tables when running against ddblocal)
 
-	var allNames []*string
+	var allNamesPages []*string
 	processPage := func(page *dynamodb.ListTablesOutput, lastPage bool) bool {
-		allNames = append(allNames, page.TableNames...)
+		allNamesPages = append(allNamesPages, page.TableNames...)
 		return true
 	}
-	err := db.ListTablesPages(&dynamodb.ListTablesInput{}, processPage)
+	err = db.ListTablesPages(&dynamodb.ListTablesInput{}, processPage)
 	assert.NoError(t, err)
 
 	// Dynamo doesn't guarantee the iteration order, so we don't impose that
 	// either.
-	slices.SortFunc(allNames, comparePtr[string])
+	slices.SortFunc(allNamesPages, comparePtr[string])
 	slices.SortFunc(expectedNames, comparePtr[string])
-	assert.Equal(t, expectedNames, allNames)
+	assert.Equal(t, expectedNames, allNamesPages)
 }

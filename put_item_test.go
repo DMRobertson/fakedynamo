@@ -43,7 +43,7 @@ func Test_PutItem_ValidationErrors(t *testing.T) {
 		},
 		{
 			// TODO: ddb local seems to hang when given a dummy table name.
-			//       create a dedicaed table for this test.
+			//       create a dedicated table for this test.
 			Name: "Returns ValidationException when Item value is nil",
 			Input: dynamodb.PutItemInput{
 				Item: map[string]*dynamodb.AttributeValue{"123": nil},

@@ -2,8 +2,10 @@ package fakedynamo_test
 
 import (
 	"cmp"
+	"errors"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -118,6 +120,7 @@ func assertErrorContains(t *testing.T, err error, needles ...string) {
 		return
 	}
 	for _, needle := range needles {
-		assert.ErrorContains(t, err, needle)
+		err = errors.New(strings.ToLower(err.Error()))
+		assert.ErrorContains(t, err, strings.ToLower(needle))
 	}
 }

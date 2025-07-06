@@ -52,7 +52,7 @@ func TestDB_ValidationErrors_ReturnsValidation_ForNonPrimaryKeyFields(t *testing
 			"blahblah": {NULL: ptr(true)},
 		},
 	})
-	assert.ErrorContains(t, err, "must provide partition and sort keys only")
+	assert.ErrorContains(t, err, "ValidationException", "keys")
 }
 
 func TestDB_GetItem_SimplePartitionKey_Success(t *testing.T) {

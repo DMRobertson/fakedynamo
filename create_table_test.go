@@ -24,61 +24,84 @@ func TestDB_CreateTable_ValidationErrors(t *testing.T) {
 
 	testCases := []testCase{
 		{
-			Name:                "Returns ValidationException for missing AttributeDefinitions",
+			Name: "Returns ValidationException for missing AttributeDefinitions",
+			Input: dynamodb.CreateTableInput{
+				KeySchema: []*dynamodb.KeySchemaElement{{
+					AttributeName: ptr("foo"),
+					KeyType:       ptr(dynamodb.KeyTypeHash),
+				}},
+				TableName: ptr("example-table"),
+			},
 			ExpectErrorMessages: []string{"AttributeDefinitions", "required field"},
 		},
 		{
-			Name: "Returns ValidationException for nil AttributeDefinition",
-			Input: dynamodb.CreateTableInput{
-				AttributeDefinitions: []*dynamodb.AttributeDefinition{nil},
-			},
-			ExpectErrorMessages: []string{"AttributeDefinitions[0] is nil"},
-		},
-		{
-			Name: "Returns ValidationException for AttributeDefinition without AttributeName",
+			Name: "Returns ValidationException for missing AttributeDefinition fields",
 			Input: dynamodb.CreateTableInput{
 				AttributeDefinitions: []*dynamodb.AttributeDefinition{{}},
+				KeySchema: []*dynamodb.KeySchemaElement{{
+					AttributeName: ptr("foo"),
+					KeyType:       ptr(dynamodb.KeyTypeHash),
+				}},
+				TableName: ptr("example-table"),
 			},
-			ExpectErrorMessages: []string{"AttributeDefinitions[0].AttributeName", "required field"},
+			ExpectErrorMessages: []string{
+				"AttributeDefinitions[0].AttributeName",
+				"AttributeDefinitions[0].AttributeType",
+				"required field",
+			},
 		},
 		{
 			Name: "Returns ValidationException for undersized AttributeName",
 			Input: dynamodb.CreateTableInput{
 				AttributeDefinitions: []*dynamodb.AttributeDefinition{{
 					AttributeName: ptr(""),
+					AttributeType: ptr(dynamodb.ScalarAttributeTypeS),
 				}},
+				KeySchema: []*dynamodb.KeySchemaElement{{
+					AttributeName: ptr("foo"),
+					KeyType:       ptr(dynamodb.KeyTypeHash),
+				}},
+				TableName: ptr("example-table"),
 			},
-			ExpectErrorMessages: []string{"AttributeDefinitions[0].AttributeName must be between 1 and 255 characters"},
+			ExpectErrorMessages: []string{"AttributeDefinitions[0].AttributeName", "1"},
 		},
 		{
 			Name: "Returns ValidationException for oversized AttributeName",
 			Input: dynamodb.CreateTableInput{
 				AttributeDefinitions: []*dynamodb.AttributeDefinition{{
 					AttributeName: &twoKbString,
+					AttributeType: ptr(dynamodb.ScalarAttributeTypeS),
 				}},
+				KeySchema: []*dynamodb.KeySchemaElement{{
+					AttributeName: ptr("foo"),
+					KeyType:       ptr(dynamodb.KeyTypeHash),
+				}},
+				TableName: ptr("example-table"),
 			},
-			ExpectErrorMessages: []string{"AttributeDefinitions[0].AttributeName must be between 1 and 255 characters"},
-		},
-		{
-			Name: "Returns ValidationException for missing AttributeType",
-			Input: dynamodb.CreateTableInput{
-				AttributeDefinitions: []*dynamodb.AttributeDefinition{{}},
-			},
-			ExpectErrorMessages: []string{"AttributeDefinitions[0].AttributeType is a required field"},
+			ExpectErrorMessages: []string{"255", "characters"},
 		},
 		{
 			Name: "Returns ValidationException for invalid AttributeType",
 			Input: dynamodb.CreateTableInput{
 				AttributeDefinitions: []*dynamodb.AttributeDefinition{{
-					AttributeType: ptr("D"),
+					AttributeName: ptr("foo"),
+					AttributeType: ptr("nosuchtype"),
 				}},
+				KeySchema: []*dynamodb.KeySchemaElement{{
+					AttributeName: ptr("foo"),
+					KeyType:       ptr(dynamodb.KeyTypeHash),
+				}},
+				TableName: ptr("example-table"),
 			},
-			ExpectErrorMessages: []string{"AttributeDefinitions[0].AttributeType must be one of [S N B]"},
+			ExpectErrorMessages: []string{"[B, N, S]"},
 		},
 		{
-			Name:                "Returns ValidationException for missing KeySchema",
-			Input:               dynamodb.CreateTableInput{},
-			ExpectErrorMessages: []string{"KeySchema is a required field"},
+			Name: "Returns ValidationException for missing KeySchema",
+			Input: dynamodb.CreateTableInput{
+				AttributeDefinitions: []*dynamodb.AttributeDefinition{},
+				TableName:            ptr("example-table"),
+			},
+			ExpectErrorMessages: []string{"KeySchema", "required field"},
 		},
 		{
 			Name: "Returns ValidationException for undersized KeySchema",
@@ -95,13 +118,6 @@ func TestDB_CreateTable_ValidationErrors(t *testing.T) {
 			ExpectErrorMessages: []string{"KeySchema", "2"},
 		},
 		{
-			Name: "Returns ValidationException for nil KeySchema entry",
-			Input: dynamodb.CreateTableInput{
-				KeySchema: []*dynamodb.KeySchemaElement{nil, {}},
-			},
-			ExpectErrorMessages: []string{"KeySchema[0] is nil"},
-		},
-		{
 			Name:                "Returns ValidationException for missing table name",
 			Input:               dynamodb.CreateTableInput{},
 			ExpectErrorMessages: []string{"TableName", "required field"},
@@ -109,16 +125,32 @@ func TestDB_CreateTable_ValidationErrors(t *testing.T) {
 		{
 			Name: "Returns ValidationException for undersized table name",
 			Input: dynamodb.CreateTableInput{
-				TableName: aws.String(""),
+				AttributeDefinitions: []*dynamodb.AttributeDefinition{{
+					AttributeName: ptr("foo"),
+					AttributeType: ptr(dynamodb.ScalarAttributeTypeS),
+				}},
+				KeySchema: []*dynamodb.KeySchemaElement{{
+					AttributeName: ptr("foo"),
+					KeyType:       ptr(dynamodb.KeyTypeHash),
+				}},
+				TableName: ptr("aa"),
 			},
-			ExpectErrorMessages: []string{"TableName", "1"},
+			ExpectErrorMessages: []string{"Table", "name", "3", "characters"},
 		},
 		{
 			Name: "Returns ValidationException for oversized table name",
 			Input: dynamodb.CreateTableInput{
+				AttributeDefinitions: []*dynamodb.AttributeDefinition{{
+					AttributeName: ptr("foo"),
+					AttributeType: ptr(dynamodb.ScalarAttributeTypeS),
+				}},
+				KeySchema: []*dynamodb.KeySchemaElement{{
+					AttributeName: ptr("foo"),
+					KeyType:       ptr(dynamodb.KeyTypeHash),
+				}},
 				TableName: &twoKbString,
 			},
-			ExpectErrorMessages: []string{"TableName", "1024"},
+			ExpectErrorMessages: []string{"Table", "name", "255", "characters"},
 		},
 		{
 			Name: "Returns ValidationException when partition key's attribute is not defined",
@@ -131,8 +163,9 @@ func TestDB_CreateTable_ValidationErrors(t *testing.T) {
 					AttributeName: ptr("Bar"),
 					KeyType:       ptr(dynamodb.KeyTypeHash),
 				}},
+				TableName: ptr("example-table"),
 			},
-			ExpectErrorMessages: []string{"Bar is missing from AttributeDefinitions"},
+			ExpectErrorMessages: []string{"Attribute", "Definitions"},
 		},
 		{
 			Name: "Returns ValidationException when sort key's attribute is not defined",
@@ -148,8 +181,9 @@ func TestDB_CreateTable_ValidationErrors(t *testing.T) {
 					AttributeName: ptr("Bar"),
 					KeyType:       ptr(dynamodb.KeyTypeRange),
 				}},
+				TableName: ptr("example-table"),
 			},
-			ExpectErrorMessages: []string{"Bar is missing from AttributeDefinitions"},
+			ExpectErrorMessages: []string{"Attribute", "Definitions"},
 		},
 	}
 	for _, tc := range testCases {

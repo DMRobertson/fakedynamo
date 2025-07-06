@@ -3,6 +3,7 @@ package fakedynamo
 import (
 	"errors"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -50,9 +51,9 @@ func (d *DB) CreateTable(input *dynamodb.CreateTableInput) (*dynamodb.CreateTabl
 }
 
 var validAttributeTypes = []string{
-	dynamodb.ScalarAttributeTypeS,
-	dynamodb.ScalarAttributeTypeN,
 	dynamodb.ScalarAttributeTypeB,
+	dynamodb.ScalarAttributeTypeN,
+	dynamodb.ScalarAttributeTypeS,
 }
 
 func validateCreateTableInputAttributeDefinitions(input []*dynamodb.AttributeDefinition) error {
@@ -76,7 +77,8 @@ func validateCreateTableInputAttributeDefinitions(input []*dynamodb.AttributeDef
 		if attr.AttributeType == nil {
 			errs = append(errs, newValidationErrorf("AttributeDefinitions[%d].AttributeType is a required field", i))
 		} else if !slices.Contains(validAttributeTypes, *attr.AttributeType) {
-			errs = append(errs, newValidationErrorf(`AttributeDefinitions[%d].AttributeType must be one of %v`, i, validAttributeTypes))
+			errs = append(errs, newValidationErrorf(`AttributeDefinitions[%d].AttributeType must be one of [%s]`,
+				i, strings.Join(validAttributeTypes, ", ")))
 		}
 	}
 	return errors.Join(errs...)
@@ -121,8 +123,8 @@ func validateCreateTableInputKeySchema(input []*dynamodb.KeySchemaElement) error
 func validateCreateTableInputTableName(input *string) error {
 	if input == nil {
 		return newValidationError("TableName is a required field")
-	} else if len(*input) < 1 || len(*input) > 1024 {
-		return newValidationError("TableName must be between 1 and 1024 characters")
+	} else if len(*input) < 3 || len(*input) > 255 {
+		return newValidationError("TableName must be between 3 and 255 characters")
 	}
 
 	// TODO: validate name characters, see
