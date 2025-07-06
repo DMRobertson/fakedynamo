@@ -1,14 +1,14 @@
 package fakedynamo_test
 
 import (
+	"context"
 	"slices"
-	"sync"
-	"sync/atomic"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/sync/semaphore"
 )
 
 func TestDB_ListTables_ValidationErrors(t *testing.T) {
@@ -26,27 +26,31 @@ func TestDB_ListTables_Pagination(t *testing.T) {
 	// tables to expect.
 	db := makeTestDB(t)
 	expectedNames := make([]*string, 210)
-	var failed atomic.Bool
-	var wg sync.WaitGroup
+
+	const maxConcurrentRequests = 10
+	ctx, cancel := context.WithCancelCause(context.Background())
+	sem := semaphore.NewWeighted(10)
 
 	for i := range expectedNames {
 		input := exampleCreateTableInputCompositePrimaryKey()
 		expectedNames[i] = input.TableName
-		wg.Add(1)
+		if err := sem.Acquire(ctx, 1); err != nil {
+			break
+		}
 
 		// Fire off the CreateTable calls asynchronously since this speeds up
 		// the tests running under DynamoDB local.
 		go func() {
-			defer wg.Done()
+			defer sem.Release(1)
 			_, err := db.CreateTable(input)
 			if !assert.NoError(t, err) {
-				failed.Store(true)
+				cancel(err)
 			}
 		}()
 	}
 
-	wg.Wait()
-	require.False(t, failed.Load(), "at least one CreateTable call failed")
+	err := sem.Acquire(ctx, maxConcurrentRequests)
+	require.NoError(t, err, "at least one CreateTable call failed")
 
 	result1, err := db.ListTables(&dynamodb.ListTablesInput{})
 	assert.NoError(t, err)
