@@ -9,7 +9,10 @@ package conditionexpression
 
 import (
 	"errors"
+	"fmt"
 	"io"
+	"slices"
+	"strings"
 )
 
 //go:generate peg grammar.peg
@@ -40,7 +43,11 @@ func Parse(s string) (Expression, error) {
 	// stage.
 	dropBoringTokens(&root)
 
-	if err := checkInOperationLength(root); err != nil {
+	errs := []error{
+		checkInOperationLength(root),
+		checkForReservedWords(root, p.Buffer),
+	}
+	if err := errors.Join(errs...); err != nil {
 		return Expression{}, err
 	}
 
@@ -57,7 +64,7 @@ func dropBoringTokens(referer **node32) {
 		switch n.pegRule {
 		case ruleSP, ruleMAYBE_SP:
 			// Drop this node and any children, replacing them with the next sibling.
-			(*referer) = n.next
+			*referer = n.next
 		default:
 			dropBoringTokens(&n.up)
 			referer = &n.next
@@ -76,6 +83,21 @@ func checkInOperationLength(node *node32) error {
 		}
 		if err := checkInOperationLength(node.up); err != nil {
 			return err
+		}
+	}
+	return nil
+}
+
+func checkForReservedWords(node *node32, buf string) error {
+	for n := node; n != nil; n = n.next {
+		if err := checkForReservedWords(node.up, buf); err != nil {
+			return err
+		}
+		if node.pegRule == ruleName {
+			name := buf[node.begin:node.end]
+			if slices.Contains(reservedWords, strings.ToUpper(name)) {
+				return fmt.Errorf("contains reserved word '%s'", name)
+			}
 		}
 	}
 	return nil

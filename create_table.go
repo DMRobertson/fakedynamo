@@ -41,6 +41,9 @@ func (d *DB) CreateTable(input *dynamodb.CreateTableInput) (*dynamodb.CreateTabl
 	if d.tables.Has(tableKey(*input.TableName)) {
 		return nil, &dynamodb.ResourceInUseException{}
 	}
+	if schema == nil {
+		return nil, errors.New("couldn't parse schema")
+	}
 	_, _ = d.tables.ReplaceOrInsert(table{
 		spec:      input,
 		createdAt: time.Now().UTC(),

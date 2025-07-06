@@ -30,6 +30,6 @@ func (d *DB) DeleteTableWithContext(_ aws.Context, input *dynamodb.DeleteTableIn
 	return d.DeleteTable(input)
 }
 
-func (d *DB) DeleteTableRequest(input *dynamodb.DeleteTableInput) (*request.Request, *dynamodb.DeleteTableOutput) {
+func (d *DB) DeleteTableRequest(_ *dynamodb.DeleteTableInput) (*request.Request, *dynamodb.DeleteTableOutput) {
 	panic("not implemented: DeleteTableRequest")
 }

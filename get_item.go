@@ -58,7 +58,7 @@ func (d *DB) BatchGetItemWithContext(_ aws.Context, input *dynamodb.BatchGetItem
 	return d.BatchGetItem(input)
 }
 
-func (d *DB) BatchGetItemRequest(input *dynamodb.BatchGetItemInput) (*request.Request, *dynamodb.BatchGetItemOutput) {
+func (d *DB) BatchGetItemRequest(_ *dynamodb.BatchGetItemInput) (*request.Request, *dynamodb.BatchGetItemOutput) {
 	panic("not implemented: BatchGetItemRequest")
 }
 

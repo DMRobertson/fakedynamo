@@ -85,7 +85,7 @@ func TestDB_CreateTable_ValidationErrors(t *testing.T) {
 			Input: dynamodb.CreateTableInput{
 				AttributeDefinitions: []*dynamodb.AttributeDefinition{{
 					AttributeName: ptr("foo"),
-					AttributeType: ptr("nosuchtype"),
+					AttributeType: ptr("no-such-type"),
 				}},
 				KeySchema: []*dynamodb.KeySchemaElement{{
 					AttributeName: ptr("foo"),

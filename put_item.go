@@ -147,7 +147,7 @@ func validatePutItemInputAttributeValue(value *dynamodb.AttributeValue, fieldPat
 	}
 
 	// TODO: validate number format
-	// TODO: validate uniqueness of items in sets, and nonemptyness
+	// TODO: validate uniqueness of items in sets, and nonemptiness
 
 	if value.L != nil {
 		var errs []error

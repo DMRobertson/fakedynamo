@@ -24,7 +24,7 @@ func TestParser_Parse(t *testing.T) {
 		"sortKeyName <= :sortkeyval",
 		"sortKeyName > :sortkeyval",
 		"sortKeyName >= :sortkeyval",
-		"#S = :myval",
+		"#S = :myValue",
 		"sortKeyName BETWEEN :sortkeyval1 AND :sortkeyval2",
 		"begins_with ( sortKeyName, :sortkeyval )",
 		"Id = :id and begins_with(ReplyDateTime, :dt)",

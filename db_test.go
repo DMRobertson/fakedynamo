@@ -28,7 +28,7 @@ func init() {
 		dynamodbSession = session.Must(session.NewSession(
 			&aws.Config{
 				Region:      aws.String("eu-west-2"),
-				Credentials: credentials.NewStaticCredentials("fakeaccesskey", "fake-access-secret", ""),
+				Credentials: credentials.NewStaticCredentials("fakeAccessKey", "fake-access-secret", ""),
 				Endpoint:    aws.String(endpoint),
 			}))
 	}

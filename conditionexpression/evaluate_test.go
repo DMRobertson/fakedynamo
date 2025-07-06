@@ -437,7 +437,7 @@ func TestExpression_Evaluate(t *testing.T) {
 			Name:      "size of string, result true",
 			Condition: "size (Brand) <= :v_sub",
 			Item: map[string]*dynamodb.AttributeValue{
-				"Brand": {S: ptr("abcdefghijklmnop")},
+				"Brand": {S: ptr("a a a a a a a")},
 			},
 			Values: map[string]*dynamodb.AttributeValue{
 				":v_sub": {N: ptr("100")},

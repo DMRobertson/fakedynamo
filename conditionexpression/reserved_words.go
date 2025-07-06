@@ -1,5 +1,6 @@
 package conditionexpression
 
+//goland:noinspection SpellCheckingInspection
 var reservedWords = []string{
 	"ABORT",
 	"ABSOLUTE",
