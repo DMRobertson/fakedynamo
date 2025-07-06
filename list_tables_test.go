@@ -27,9 +27,9 @@ func TestDB_ListTables_Pagination(t *testing.T) {
 	db := makeTestDB(t)
 	expectedNames := make([]*string, 210)
 
-	const maxConcurrentRequests = 10
+	const maxConcurrentRequests = 2
 	ctx, cancel := context.WithCancelCause(context.Background())
-	sem := semaphore.NewWeighted(10)
+	sem := semaphore.NewWeighted(maxConcurrentRequests)
 
 	for i := range expectedNames {
 		input := exampleCreateTableInputCompositePrimaryKey()
