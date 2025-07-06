@@ -37,12 +37,11 @@ jobs:
 
       - name: Run DynamoDB local
         run: |
-          set -x
           docker run --detach --publish 8000:8000 amazon/dynamodb-local:2.6.1
           # Wait for container to be ready. From https://stackoverflow.com/a/77373799:
           attempt=0
           while [ "$attempt" -lt 10 ]; do
-            status=$(curl -o /dev/null -I -w '%{http_code}' http://localhost:8000 || true)
+            status=$(curl -s -o /dev/null -I -w '%{http_code}' http://localhost:8000 || true)
             echo "attempt $attempt, status: $status"
             if [ "$status" -eq "400" ]; then
               exit 0;
@@ -57,7 +56,7 @@ jobs:
           DYNAMODB_ENDPOINT: http://localhost:8000
         run: |
           set -euo pipefail
-          go test -count 1 -json -v ./... 2>&1 | tee /tmp/test-ddblocal.json | gotestfmt
+          go test -count 1 -json -v . 2>&1 | tee /tmp/test-ddblocal.json | gotestfmt
 
       - name: Annotate tests
         if: always()
