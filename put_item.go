@@ -62,12 +62,12 @@ func (d *DB) validateItemMatchesSchema(item avmap, t table) error {
 	partitionName := t.schema.partition
 	_, exists := item[partitionName]
 	if !exists {
-		errs = append(errs, newValidationErrorf("Item does not define partition key %s", partitionName))
+		errs = append(errs, newValidationErrorf("Item does not define required key %s", partitionName))
 	}
 	if sortName := t.schema.sort; sortName != "" {
 		_, exists = item[sortName]
 		if !exists {
-			errs = append(errs, newValidationErrorf("Item does not define sort key %s", sortName))
+			errs = append(errs, newValidationErrorf("Item does not define required key %s", sortName))
 		}
 	}
 
@@ -76,19 +76,19 @@ func (d *DB) validateItemMatchesSchema(item avmap, t table) error {
 			switch definedType {
 			case dynamodb.ScalarAttributeTypeS:
 				if attrVal.S == nil {
-					errs = append(errs, newValidationErrorf("Item.%s is defined to have type S", attrName))
+					errs = append(errs, newValidationErrorf("Type mismatch for Item.%s: defined to have type S", attrName))
 				} else if len(*attrVal.S) == 0 {
 					errs = append(errs, newValidationErrorf("Item.%s.S cannot be empty", attrName))
 				}
 			case dynamodb.ScalarAttributeTypeB:
 				if attrVal.B == nil {
-					errs = append(errs, newValidationErrorf("Item.%s is defined to have type B", attrName))
+					errs = append(errs, newValidationErrorf("Type mismatch for Item.%s: defined to have type B", attrName))
 				} else if len(attrVal.B) == 0 {
 					errs = append(errs, newValidationErrorf("Item.%s.B cannot be empty", attrName))
 				}
 			case dynamodb.ScalarAttributeTypeN:
 				if attrVal.N == nil {
-					errs = append(errs, newValidationErrorf("Item.%s is defined to have type N", attrName))
+					errs = append(errs, newValidationErrorf("Type mismatch for Item.%s: defined to have type N", attrName))
 				} else if len(*attrVal.N) == 0 {
 					errs = append(errs, newValidationErrorf("Item.%s.N cannot be empty", attrName))
 				}

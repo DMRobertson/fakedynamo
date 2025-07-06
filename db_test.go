@@ -4,8 +4,10 @@ import (
 	"cmp"
 	"os"
 	"strconv"
+	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/DMRobertson/fakedynamo"
 	"github.com/aws/aws-sdk-go/aws"
@@ -18,10 +20,12 @@ import (
 
 var (
 	dynamodbSession *session.Session
-	nonceCounter    atomic.Uint64
+	nonceCounter    atomic.Int64
 )
 
 func init() {
+	nonceCounter.Store(time.Now().Unix())
+
 	endpoint := os.Getenv("DYNAMODB_ENDPOINT")
 	if endpoint != "" {
 		dynamodbSession = session.Must(session.NewSession(
@@ -37,6 +41,8 @@ func TestMain(m *testing.M) {
 	retval := m.Run()
 
 	if dynamodbSession != nil {
+		var wg sync.WaitGroup
+
 		db := dynamodb.New(dynamodbSession)
 		for {
 			result, err := db.ListTables(&dynamodb.ListTablesInput{})
@@ -47,12 +53,16 @@ func TestMain(m *testing.M) {
 				break
 			}
 			for _, tableName := range result.TableNames {
-				_, err := db.DeleteTable(&dynamodb.DeleteTableInput{
-					TableName: tableName,
-				})
-				if err != nil {
-					panic(err)
-				}
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					_, err := db.DeleteTable(&dynamodb.DeleteTableInput{
+						TableName: tableName,
+					})
+					if err != nil {
+						panic(err)
+					}
+				}()
 			}
 		}
 	}
@@ -60,11 +70,29 @@ func TestMain(m *testing.M) {
 	os.Exit(retval)
 }
 
-func makeTestDB() dynamodbiface.DynamoDBAPI {
+func makeTestDB(t *testing.T) dynamodbiface.DynamoDBAPI {
+	t.Helper()
 	if dynamodbSession != nil {
-		return dynamodb.New(dynamodbSession)
+		return autocleaningDynamoDB{
+			DynamoDBAPI: dynamodb.New(dynamodbSession),
+			t:           t,
+		}
 	}
 	return fakedynamo.NewDB()
+}
+
+type autocleaningDynamoDB struct {
+	dynamodbiface.DynamoDBAPI
+	t *testing.T
+}
+
+func (db autocleaningDynamoDB) CreateTable(input *dynamodb.CreateTableInput) (*dynamodb.CreateTableOutput, error) {
+	db.t.Cleanup(func() {
+		_, _ = db.DeleteTable(&dynamodb.DeleteTableInput{
+			TableName: input.TableName,
+		})
+	})
+	return db.DynamoDBAPI.CreateTable(input)
 }
 
 func nonce() string {

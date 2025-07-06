@@ -10,7 +10,7 @@ import (
 
 func TestDB_DescribeTable_ReturnsErrorForMissingTable(t *testing.T) {
 	t.Parallel()
-	db := makeTestDB()
+	db := makeTestDB(t)
 	_, err := db.DescribeTable(&dynamodb.DescribeTableInput{TableName: ptr("my-table")})
 	var expectedErr *dynamodb.ResourceNotFoundException
 	assert.ErrorAs(t, err, &expectedErr)
@@ -18,7 +18,7 @@ func TestDB_DescribeTable_ReturnsErrorForMissingTable(t *testing.T) {
 }
 func TestDB_DescribeTable_HappyPath(t *testing.T) {
 	t.Parallel()
-	db := makeTestDB()
+	db := makeTestDB(t)
 	createInput := exampleCreateTableInputCompositePrimaryKey()
 	_, err := db.CreateTable(createInput)
 	require.NoError(t, err)

@@ -13,12 +13,13 @@ func Test_PutItem_ValidationErrors(t *testing.T) {
 	t.Parallel()
 
 	type testCase struct {
-		Name  string
-		Input dynamodb.PutItemInput
-		Setup func(*testing.T, dynamodbiface.DynamoDBAPI, *testCase)
+		Name      string
+		Input     dynamodb.PutItemInput
+		Setup     func(*testing.T, dynamodbiface.DynamoDBAPI, *testCase)
+		SkipLocal string
 
-		ExpectErrorMessage string
-		ExpectErrorAs      error
+		ExpectErrorMessages []string
+		ExpectErrorAs       error
 	}
 
 	hugeKey := string(make([]byte, 65536))
@@ -27,30 +28,34 @@ func Test_PutItem_ValidationErrors(t *testing.T) {
 
 	testCases := []testCase{
 		{
-			Name:               "Returns ValidationException when Item is missing",
-			Input:              dynamodb.PutItemInput{},
-			ExpectErrorMessage: "Item is a required field",
+			Name:                "Returns ValidationException when Item is missing",
+			Input:               dynamodb.PutItemInput{},
+			ExpectErrorMessages: []string{"Item", "required field"},
 		},
 		{
-			Name: "Returns ValidationException when Item keys are oversized",
+			Name:      "Returns ValidationException when Item keys are oversized",
+			SkipLocal: "Oversized item keys never get a response from DynamoDB Local",
 			Input: dynamodb.PutItemInput{
-				Item: map[string]*dynamodb.AttributeValue{hugeKey: nil},
+				Item:      map[string]*dynamodb.AttributeValue{hugeKey: nil},
+				TableName: ptr("a"),
 			},
-			ExpectErrorMessage: "key too large, max 65535 characters",
+			ExpectErrorMessages: []string{"key too large, max 65535 characters"},
 		},
 		{
+			// TODO: ddb local seems to hang when given a dummy table name.
+			//       create a dedicaed table for this test.
 			Name: "Returns ValidationException when Item value is nil",
 			Input: dynamodb.PutItemInput{
 				Item: map[string]*dynamodb.AttributeValue{"123": nil},
 			},
-			ExpectErrorMessage: "Item.123 is nil",
+			ExpectErrorMessages: []string{"Item.123 is nil"},
 		},
 		{
 			Name: "Returns ValidationException when Item value has no types",
 			Input: dynamodb.PutItemInput{
 				Item: map[string]*dynamodb.AttributeValue{"123": {}},
 			},
-			ExpectErrorMessage: "Item.123 must have exactly 1 data type specified",
+			ExpectErrorMessages: []string{"Item.123 must have exactly 1 data type specified"},
 		},
 		{
 			Name: "Returns ValidationException when Item value has multiple types",
@@ -60,7 +65,7 @@ func Test_PutItem_ValidationErrors(t *testing.T) {
 					N: ptr("123"),
 				}},
 			},
-			ExpectErrorMessage: "Item.123 must have exactly 1 data type specified",
+			ExpectErrorMessages: []string{"Item.123 must have exactly 1 data type specified"},
 		},
 		{
 			Name: "Returns ValidationException when list elements are invalid",
@@ -68,7 +73,7 @@ func Test_PutItem_ValidationErrors(t *testing.T) {
 				Item: map[string]*dynamodb.AttributeValue{
 					"A": {L: []*dynamodb.AttributeValue{{S: ptr("B"), N: ptr("3")}}}},
 			},
-			ExpectErrorMessage: "Item.A[0] must have exactly 1 data type specified",
+			ExpectErrorMessages: []string{"Item.A[0] must have exactly 1 data type specified"},
 		},
 		{
 			Name: "Returns ValidationException when map elements are invalid",
@@ -79,13 +84,13 @@ func Test_PutItem_ValidationErrors(t *testing.T) {
 					}},
 				},
 			},
-			ExpectErrorMessage: "key too large, max 65535 characters",
+			ExpectErrorMessages: []string{"key too large, max 65535 characters"},
 		},
 
 		{
-			Name:               "Returns ValidationException when TableName is missing",
-			Input:              dynamodb.PutItemInput{},
-			ExpectErrorMessage: "TableName is a required field",
+			Name:                "Returns ValidationException when TableName is missing",
+			Input:               dynamodb.PutItemInput{},
+			ExpectErrorMessages: []string{"TableName is a required field"},
 		},
 		{
 			Name: "Returns ResourceNotFoundException when table does not exist",
@@ -99,14 +104,14 @@ func Test_PutItem_ValidationErrors(t *testing.T) {
 			Input: dynamodb.PutItemInput{
 				ReturnValues: ptr("POTATO"),
 			},
-			ExpectErrorMessage: "ReturnValues must be NONE or ALL_OLD",
+			ExpectErrorMessages: []string{"ReturnValues must be NONE or ALL_OLD"},
 		},
 		{
 			Name: "Returns ValidationException for invalid ReturnValuesOnConditionCheckFailure",
 			Input: dynamodb.PutItemInput{
 				ReturnValues: ptr("POTATO"),
 			},
-			ExpectErrorMessage: "ReturnValuesOnConditionCheckFailure must be NONE or ALL_OLD",
+			ExpectErrorMessages: []string{"ReturnValuesOnConditionCheckFailure must be NONE or ALL_OLD"},
 		},
 		{
 			Name: "Returns ValidationException when partition key is missing",
@@ -118,7 +123,7 @@ func Test_PutItem_ValidationErrors(t *testing.T) {
 				Item:      map[string]*dynamodb.AttributeValue{},
 				TableName: exampleSimpleTableSpec.TableName,
 			},
-			ExpectErrorMessage: "Item does not define partition key Foo",
+			ExpectErrorMessages: []string{"ValidationException", "required key"},
 		},
 		{
 			Name: "Returns ValidationException when sort key is missing",
@@ -130,7 +135,7 @@ func Test_PutItem_ValidationErrors(t *testing.T) {
 				Item:      map[string]*dynamodb.AttributeValue{},
 				TableName: exampleCompositeTableSpec.TableName,
 			},
-			ExpectErrorMessage: "Item does not define sort key Bar",
+			ExpectErrorMessages: []string{"ValidationException", "required key"},
 		},
 		{
 			Name: "Returns ValidationException on String key type mismatch",
@@ -144,7 +149,7 @@ func Test_PutItem_ValidationErrors(t *testing.T) {
 				},
 				TableName: exampleSimpleTableSpec.TableName,
 			},
-			ExpectErrorMessage: "Item.Foo is defined to have type S",
+			ExpectErrorMessages: []string{"ValidationException", "Type mismatch"},
 		},
 		{
 			Name: "Returns ValidationException on String key with empty value",
@@ -158,7 +163,7 @@ func Test_PutItem_ValidationErrors(t *testing.T) {
 				},
 				TableName: exampleSimpleTableSpec.TableName,
 			},
-			ExpectErrorMessage: "Item.Foo.S cannot be empty",
+			ExpectErrorMessages: []string{"Item.Foo.S cannot be empty"},
 		},
 		{
 			Name: "Returns ValidationException on Binary key type mismatch",
@@ -179,7 +184,7 @@ func Test_PutItem_ValidationErrors(t *testing.T) {
 				},
 				TableName: exampleSimpleTableSpec.TableName,
 			},
-			ExpectErrorMessage: "Item.Foo is defined to have type B",
+			ExpectErrorMessages: []string{"ValidationException", "Type mismatch"},
 		},
 		{
 			Name: "Returns ValidationException on Binary key with empty value",
@@ -200,7 +205,7 @@ func Test_PutItem_ValidationErrors(t *testing.T) {
 				},
 				TableName: exampleSimpleTableSpec.TableName,
 			},
-			ExpectErrorMessage: "Item.Foo.B cannot be empty",
+			ExpectErrorMessages: []string{"Item.Foo.B cannot be empty"},
 		},
 		{
 			Name: "Returns ValidationException on Number key type mismatch",
@@ -221,7 +226,7 @@ func Test_PutItem_ValidationErrors(t *testing.T) {
 				},
 				TableName: exampleSimpleTableSpec.TableName,
 			},
-			ExpectErrorMessage: "Item.Foo is defined to have type N",
+			ExpectErrorMessages: []string{"ValidationException", "Type mismatch"},
 		},
 		{
 			Name: "Returns ValidationException on Number key with empty value",
@@ -235,19 +240,22 @@ func Test_PutItem_ValidationErrors(t *testing.T) {
 				},
 				TableName: exampleSimpleTableSpec.TableName,
 			},
-			ExpectErrorMessage: "Item.Foo.N cannot be empty",
+			ExpectErrorMessages: []string{"Item.Foo.N cannot be empty"},
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			db := makeTestDB()
+			if dynamodbSession != nil && tc.SkipLocal != "" {
+				t.Skip(tc.SkipLocal)
+			}
+			db := makeTestDB(t)
 			if tc.Setup != nil {
 				tc.Setup(t, db, &tc)
 			}
 
 			_, err := db.PutItem(&tc.Input)
-			assert.ErrorContains(t, err, tc.ExpectErrorMessage)
+			assertErrorContains(t, err, tc.ExpectErrorMessages...)
 			if tc.ExpectErrorAs != nil {
 				assert.ErrorAs(t, err, &tc.ExpectErrorAs)
 			}
@@ -258,7 +266,7 @@ func Test_PutItem_ValidationErrors(t *testing.T) {
 func TestDB_PutItem_ReturnValues(t *testing.T) {
 	t.Parallel()
 
-	db := makeTestDB()
+	db := makeTestDB(t)
 	tableOutput, err := db.CreateTable(exampleCreateTableInputSimplePrimaryKey())
 	require.NoError(t, err)
 

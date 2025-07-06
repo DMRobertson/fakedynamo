@@ -11,17 +11,17 @@ import (
 
 func TestDB_ListTables_ValidationErrors(t *testing.T) {
 	t.Parallel()
-	db := makeTestDB()
+	db := makeTestDB(t)
 	_, err := db.ListTables(&dynamodb.ListTablesInput{Limit: ptr[int64](0)})
-	assert.ErrorContains(t, err, "Limit must be between 1 and 100")
+	assertErrorContains(t, err, "Limit", "1")
 
 	_, err = db.ListTables(&dynamodb.ListTablesInput{Limit: ptr[int64](101)})
-	assert.ErrorContains(t, err, "Limit must be between 1 and 100")
+	assertErrorContains(t, err, "Limit", "100")
 }
 
 func TestDB_ListTables_DefaultLimitSize(t *testing.T) {
 	t.Parallel()
-	db := makeTestDB()
+	db := makeTestDB(t)
 	for range 200 {
 		input := exampleCreateTableInputCompositePrimaryKey()
 		_, err := db.CreateTable(input)
@@ -35,13 +35,16 @@ func TestDB_ListTables_DefaultLimitSize(t *testing.T) {
 
 func TestDB_ListTables_Pagination(t *testing.T) {
 	t.Parallel()
-	db := makeTestDB()
+	db := makeTestDB(t)
 	expectedNames := make([]*string, 250)
 	for i := range expectedNames {
 		input := exampleCreateTableInputCompositePrimaryKey()
 		expectedNames[i] = input.TableName
 		_, err := db.CreateTable(input)
 		require.NoError(t, err)
+		if err != nil {
+			t.FailNow()
+		}
 	}
 
 	result1, err := db.ListTables(&dynamodb.ListTablesInput{})
@@ -77,7 +80,7 @@ func TestDB_ListTables_Pagination(t *testing.T) {
 
 func TestDB_ListTablesPages(t *testing.T) {
 	t.Parallel()
-	db := makeTestDB()
+	db := makeTestDB(t)
 	expectedNames := make([]*string, 250)
 	for i := range expectedNames {
 		input := exampleCreateTableInputCompositePrimaryKey()

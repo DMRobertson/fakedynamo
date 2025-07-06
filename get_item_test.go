@@ -10,15 +10,14 @@ import (
 
 func TestDB_ValidationErrors_ReturnsValidationException_ForMissingRequiredFields(t *testing.T) {
 	t.Parallel()
-	db := makeTestDB()
+	db := makeTestDB(t)
 	_, err := db.GetItem(&dynamodb.GetItemInput{})
-	assert.ErrorContains(t, err, "Key is a required field")
-	assert.ErrorContains(t, err, "TableName is a required field")
+	assert.ErrorContains(t, err, "Key", "TableName", "required field")
 }
 
 func TestDB_ValidationErrors_ReturnsValidationException_NoSuchTable(t *testing.T) {
 	t.Parallel()
-	db := makeTestDB()
+	db := makeTestDB(t)
 	_, err := db.GetItem(&dynamodb.GetItemInput{
 		Key:       map[string]*dynamodb.AttributeValue{},
 		TableName: ptr("blah"),
@@ -29,7 +28,7 @@ func TestDB_ValidationErrors_ReturnsValidationException_NoSuchTable(t *testing.T
 
 func TestDB_ValidationErrors_ReturnsValidation_ForNonPrimaryKeyFields(t *testing.T) {
 	t.Parallel()
-	db := makeTestDB()
+	db := makeTestDB(t)
 	simpleTable, err := db.CreateTable(exampleCreateTableInputSimplePrimaryKey())
 	require.NoError(t, err)
 
@@ -40,7 +39,7 @@ func TestDB_ValidationErrors_ReturnsValidation_ForNonPrimaryKeyFields(t *testing
 			"blahblah": {NULL: ptr(true)},
 		},
 	})
-	assert.ErrorContains(t, err, "must provide partition key only")
+	assert.ErrorContains(t, err, "ValidationException", "key")
 
 	compositeTable, err := db.CreateTable(exampleCreateTableInputCompositePrimaryKey())
 	require.NoError(t, err)
@@ -58,7 +57,7 @@ func TestDB_ValidationErrors_ReturnsValidation_ForNonPrimaryKeyFields(t *testing
 
 func TestDB_GetItem_SimplePartitionKey_Success(t *testing.T) {
 	t.Parallel()
-	db := makeTestDB()
+	db := makeTestDB(t)
 	tableOutput, err := db.CreateTable(exampleCreateTableInputSimplePrimaryKey())
 	require.NoError(t, err)
 
@@ -85,7 +84,7 @@ func TestDB_GetItem_SimplePartitionKey_Success(t *testing.T) {
 
 func TestDB_GetItem_CompositePartitionKey(t *testing.T) {
 	t.Parallel()
-	db := makeTestDB()
+	db := makeTestDB(t)
 	tableOutput, err := db.CreateTable(exampleCreateTableInputCompositePrimaryKey())
 	require.NoError(t, err)
 

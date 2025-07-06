@@ -10,14 +10,14 @@ import (
 
 func TestDB_DeleteTable_ErrorsIfNoTableNameGiven(t *testing.T) {
 	t.Parallel()
-	db := makeTestDB()
+	db := makeTestDB(t)
 	_, err := db.DeleteTable(&dynamodb.DeleteTableInput{})
 	assertErrorContains(t, err, "TableName", "required field")
 }
 
 func TestDB_DeleteTable_ErrorsIfTableMissing(t *testing.T) {
 	t.Parallel()
-	db := makeTestDB()
+	db := makeTestDB(t)
 	_, err := db.DeleteTable(&dynamodb.DeleteTableInput{
 		TableName: ptr("my-table"),
 	})
@@ -28,7 +28,7 @@ func TestDB_DeleteTable_ErrorsIfTableMissing(t *testing.T) {
 func TestDB_DeleteTable_HappyPath(t *testing.T) {
 	t.Parallel()
 
-	db := makeTestDB()
+	db := makeTestDB(t)
 	input := exampleCreateTableInputCompositePrimaryKey()
 	_, err := db.CreateTable(input)
 	require.NoError(t, err)
