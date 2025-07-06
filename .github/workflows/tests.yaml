@@ -41,7 +41,8 @@ jobs:
           # Wait for container to be ready. From https://stackoverflow.com/a/77373799:
           attempt=0
           while [ "$attempt" -lt 10 ]; do
-            status=$(curl -s -o /dev/null -I -w '%{http_code}' http://localhost:8000)
+            status=$(curl -o /dev/null -I -w '%{http_code}' http://localhost:8000)
+            echo "attempt $attempt, status: $status"
             if [ "$status" -eq "400" ]; then
               exit 0;
             fi
