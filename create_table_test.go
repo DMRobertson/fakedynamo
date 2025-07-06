@@ -199,11 +199,10 @@ func TestDB_CreateTable_ErrorsWhenTableExists(t *testing.T) {
 	t.Parallel()
 	db := makeTestDB(t)
 	input := exampleCreateTableInputSimplePrimaryKey()
-	result, err := db.CreateTable(input)
+	_, err := db.CreateTable(input)
 	require.NoError(t, err)
-	require.NotNil(t, result)
 
-	result, err = db.CreateTable(input)
+	_, err = db.CreateTable(input)
 	var expectedErr *dynamodb.ResourceInUseException
 	assert.ErrorAs(t, err, &expectedErr)
 }

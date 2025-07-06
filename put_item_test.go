@@ -92,7 +92,8 @@ func Test_PutItem_ValidationErrors(t *testing.T) {
 			Input: dynamodb.PutItemInput{
 				Item: map[string]*dynamodb.AttributeValue{
 					"Foo": {L: []*dynamodb.AttributeValue{
-						{S: ptr("B"), N: ptr("3")}}},
+						{S: ptr("B"), N: ptr("3")},
+					}},
 				},
 				TableName: exampleSimpleTable.TableName,
 			},

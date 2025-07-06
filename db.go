@@ -126,7 +126,6 @@ func makeRecordLess(schema tableSchema) btree.LessFunc[avmap] {
 			return partitionLess(a, b) || bytes.Compare(a[schema.sort].B, b[schema.sort].B) < 0
 		}
 	default:
-		panic("unreachable")
 	}
-	return nil
+	panic("unreachable")
 }

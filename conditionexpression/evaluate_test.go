@@ -248,7 +248,8 @@ func TestExpression_Evaluate(t *testing.T) {
 			Name:      "attribute_exists, list item missing, result false",
 			Condition: "attribute_exists (#Pictures[0].#SideView)",
 			Item: map[string]*dynamodb.AttributeValue{
-				"pics": {L: []*dynamodb.AttributeValue{}}},
+				"pics": {L: []*dynamodb.AttributeValue{}},
+			},
 			Names: map[string]*string{
 				"#Pictures": ptr("pics"),
 				"#SideView": ptr("side"),
@@ -261,7 +262,8 @@ func TestExpression_Evaluate(t *testing.T) {
 			Item: map[string]*dynamodb.AttributeValue{
 				"pics": {L: []*dynamodb.AttributeValue{
 					{M: map[string]*dynamodb.AttributeValue{}},
-				}}},
+				}},
+			},
 			Names: map[string]*string{
 				"#Pictures": ptr("pics"),
 				"#SideView": ptr("side"),
@@ -276,7 +278,8 @@ func TestExpression_Evaluate(t *testing.T) {
 					{M: map[string]*dynamodb.AttributeValue{
 						"side": {NULL: ptr(true)},
 					}},
-				}}},
+				}},
+			},
 			Names: map[string]*string{
 				"#Pictures": ptr("pics"),
 				"#SideView": ptr("side"),
@@ -291,7 +294,8 @@ func TestExpression_Evaluate(t *testing.T) {
 					{M: map[string]*dynamodb.AttributeValue{
 						"side": {NULL: ptr(true)},
 					}},
-				}}},
+				}},
+			},
 			ExpectedResult: false,
 		},
 		{
