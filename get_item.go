@@ -78,3 +78,16 @@ func (d *DB) GetItemWithContext(_ aws.Context, input *dynamodb.GetItemInput, _ .
 func (d *DB) GetItemRequest(_ *dynamodb.GetItemInput) (*request.Request, *dynamodb.GetItemOutput) {
 	panic("not implemented: GetItemRequest")
 }
+
+func (d *DB) TransactGetItems(input *dynamodb.TransactGetItemsInput) (*dynamodb.TransactGetItemsOutput, error) {
+	// TODO implement me
+	panic("implement me")
+}
+
+func (d *DB) TransactGetItemsWithContext(_ aws.Context, input *dynamodb.TransactGetItemsInput, _ ...request.Option) (*dynamodb.TransactGetItemsOutput, error) {
+	return d.TransactGetItems(input)
+}
+
+func (d *DB) TransactGetItemsRequest(input *dynamodb.TransactGetItemsInput) (*request.Request, *dynamodb.TransactGetItemsOutput) {
+	panic("not implemented: TransactGetItemsRequest")
+}

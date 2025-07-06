@@ -81,21 +81,6 @@ func (d *DB) DeleteBackupRequest(input *dynamodb.DeleteBackupInput) (*request.Re
 	panic("implement me")
 }
 
-func (d *DB) DeleteItem(input *dynamodb.DeleteItemInput) (*dynamodb.DeleteItemOutput, error) {
-	// TODO implement me
-	panic("implement me")
-}
-
-func (d *DB) DeleteItemWithContext(context aws.Context, input *dynamodb.DeleteItemInput, option ...request.Option) (*dynamodb.DeleteItemOutput, error) {
-	// TODO implement me
-	panic("implement me")
-}
-
-func (d *DB) DeleteItemRequest(input *dynamodb.DeleteItemInput) (*request.Request, *dynamodb.DeleteItemOutput) {
-	// TODO implement me
-	panic("implement me")
-}
-
 func (d *DB) DeleteResourcePolicy(input *dynamodb.DeleteResourcePolicyInput) (*dynamodb.DeleteResourcePolicyOutput, error) {
 	// TODO implement me
 	panic("implement me")
@@ -531,31 +516,6 @@ func (d *DB) PutResourcePolicyRequest(input *dynamodb.PutResourcePolicyInput) (*
 	panic("implement me")
 }
 
-func (d *DB) Query(input *dynamodb.QueryInput) (*dynamodb.QueryOutput, error) {
-	// TODO implement me
-	panic("implement me")
-}
-
-func (d *DB) QueryWithContext(context aws.Context, input *dynamodb.QueryInput, option ...request.Option) (*dynamodb.QueryOutput, error) {
-	// TODO implement me
-	panic("implement me")
-}
-
-func (d *DB) QueryRequest(input *dynamodb.QueryInput) (*request.Request, *dynamodb.QueryOutput) {
-	// TODO implement me
-	panic("implement me")
-}
-
-func (d *DB) QueryPages(input *dynamodb.QueryInput, f func(*dynamodb.QueryOutput, bool) bool) error {
-	// TODO implement me
-	panic("implement me")
-}
-
-func (d *DB) QueryPagesWithContext(context aws.Context, input *dynamodb.QueryInput, f func(*dynamodb.QueryOutput, bool) bool, option ...request.Option) error {
-	// TODO implement me
-	panic("implement me")
-}
-
 func (d *DB) RestoreTableFromBackup(input *dynamodb.RestoreTableFromBackupInput) (*dynamodb.RestoreTableFromBackupOutput, error) {
 	// TODO implement me
 	panic("implement me")
@@ -586,31 +546,6 @@ func (d *DB) RestoreTableToPointInTimeRequest(input *dynamodb.RestoreTableToPoin
 	panic("implement me")
 }
 
-func (d *DB) Scan(input *dynamodb.ScanInput) (*dynamodb.ScanOutput, error) {
-	// TODO implement me
-	panic("implement me")
-}
-
-func (d *DB) ScanWithContext(context aws.Context, input *dynamodb.ScanInput, option ...request.Option) (*dynamodb.ScanOutput, error) {
-	// TODO implement me
-	panic("implement me")
-}
-
-func (d *DB) ScanRequest(input *dynamodb.ScanInput) (*request.Request, *dynamodb.ScanOutput) {
-	// TODO implement me
-	panic("implement me")
-}
-
-func (d *DB) ScanPages(input *dynamodb.ScanInput, f func(*dynamodb.ScanOutput, bool) bool) error {
-	// TODO implement me
-	panic("implement me")
-}
-
-func (d *DB) ScanPagesWithContext(context aws.Context, input *dynamodb.ScanInput, f func(*dynamodb.ScanOutput, bool) bool, option ...request.Option) error {
-	// TODO implement me
-	panic("implement me")
-}
-
 func (d *DB) TagResource(input *dynamodb.TagResourceInput) (*dynamodb.TagResourceOutput, error) {
 	// TODO implement me
 	panic("implement me")
@@ -622,36 +557,6 @@ func (d *DB) TagResourceWithContext(context aws.Context, input *dynamodb.TagReso
 }
 
 func (d *DB) TagResourceRequest(input *dynamodb.TagResourceInput) (*request.Request, *dynamodb.TagResourceOutput) {
-	// TODO implement me
-	panic("implement me")
-}
-
-func (d *DB) TransactGetItems(input *dynamodb.TransactGetItemsInput) (*dynamodb.TransactGetItemsOutput, error) {
-	// TODO implement me
-	panic("implement me")
-}
-
-func (d *DB) TransactGetItemsWithContext(context aws.Context, input *dynamodb.TransactGetItemsInput, option ...request.Option) (*dynamodb.TransactGetItemsOutput, error) {
-	// TODO implement me
-	panic("implement me")
-}
-
-func (d *DB) TransactGetItemsRequest(input *dynamodb.TransactGetItemsInput) (*request.Request, *dynamodb.TransactGetItemsOutput) {
-	// TODO implement me
-	panic("implement me")
-}
-
-func (d *DB) TransactWriteItems(input *dynamodb.TransactWriteItemsInput) (*dynamodb.TransactWriteItemsOutput, error) {
-	// TODO implement me
-	panic("implement me")
-}
-
-func (d *DB) TransactWriteItemsWithContext(context aws.Context, input *dynamodb.TransactWriteItemsInput, option ...request.Option) (*dynamodb.TransactWriteItemsOutput, error) {
-	// TODO implement me
-	panic("implement me")
-}
-
-func (d *DB) TransactWriteItemsRequest(input *dynamodb.TransactWriteItemsInput) (*request.Request, *dynamodb.TransactWriteItemsOutput) {
 	// TODO implement me
 	panic("implement me")
 }
@@ -731,21 +636,6 @@ func (d *DB) UpdateGlobalTableSettingsRequest(input *dynamodb.UpdateGlobalTableS
 	panic("implement me")
 }
 
-func (d *DB) UpdateItem(input *dynamodb.UpdateItemInput) (*dynamodb.UpdateItemOutput, error) {
-	// TODO implement me
-	panic("implement me")
-}
-
-func (d *DB) UpdateItemWithContext(context aws.Context, input *dynamodb.UpdateItemInput, option ...request.Option) (*dynamodb.UpdateItemOutput, error) {
-	// TODO implement me
-	panic("implement me")
-}
-
-func (d *DB) UpdateItemRequest(input *dynamodb.UpdateItemInput) (*request.Request, *dynamodb.UpdateItemOutput) {
-	// TODO implement me
-	panic("implement me")
-}
-
 func (d *DB) UpdateKinesisStreamingDestination(input *dynamodb.UpdateKinesisStreamingDestinationInput) (*dynamodb.UpdateKinesisStreamingDestinationOutput, error) {
 	// TODO implement me
 	panic("implement me")
@@ -757,21 +647,6 @@ func (d *DB) UpdateKinesisStreamingDestinationWithContext(context aws.Context, i
 }
 
 func (d *DB) UpdateKinesisStreamingDestinationRequest(input *dynamodb.UpdateKinesisStreamingDestinationInput) (*request.Request, *dynamodb.UpdateKinesisStreamingDestinationOutput) {
-	// TODO implement me
-	panic("implement me")
-}
-
-func (d *DB) UpdateTable(input *dynamodb.UpdateTableInput) (*dynamodb.UpdateTableOutput, error) {
-	// TODO implement me
-	panic("implement me")
-}
-
-func (d *DB) UpdateTableWithContext(context aws.Context, input *dynamodb.UpdateTableInput, option ...request.Option) (*dynamodb.UpdateTableOutput, error) {
-	// TODO implement me
-	panic("implement me")
-}
-
-func (d *DB) UpdateTableRequest(input *dynamodb.UpdateTableInput) (*request.Request, *dynamodb.UpdateTableOutput) {
 	// TODO implement me
 	panic("implement me")
 }
