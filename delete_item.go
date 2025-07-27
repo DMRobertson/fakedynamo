@@ -61,12 +61,13 @@ func (d *DB) DeleteItem(input *dynamodb.DeleteItemInput) (*dynamodb.DeleteItemOu
 		return nil, &dynamodb.ResourceNotFoundException{}
 	}
 
-	err := validateAvmapMatchesSchema(input.Key, t, "Key")
+	pVal, err := validateAvmapMatchesSchema(input.Key, t, "Key")
 	if err != nil {
 		return nil, err
 	}
 
-	previous, _ := t.records.Get(input.Key)
+	partition := t.getPartition(pVal)
+	previous, _ := partition.Get(input.Key)
 	if condition != nil {
 		match, err := condition.Evaluate(previous, input.ExpressionAttributeNames, input.ExpressionAttributeValues)
 		if err != nil {
@@ -81,7 +82,7 @@ func (d *DB) DeleteItem(input *dynamodb.DeleteItemInput) (*dynamodb.DeleteItemOu
 		}
 	}
 
-	_, _ = t.records.Delete(input.Key)
+	_, _ = partition.Delete(input.Key)
 	// Unless you specify conditions, the DeleteItem is an idempotent operation;
 	// running it multiple times on the same item or attribute does not result
 	// in an error response.

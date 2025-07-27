@@ -63,30 +63,30 @@ func (d *DB) PutItem(input *dynamodb.PutItemInput) (*dynamodb.PutItemOutput, err
 		return nil, err
 	}
 
-	if err := validateAvmapMatchesSchema(input.Item, t, "Item"); err != nil {
+	pVal, err := validateAvmapMatchesSchema(input.Item, t, "Item")
+	if err != nil {
 		return nil, err
 	}
+	var existing avmap
+	partition := t.getPartition(pVal)
+	existing, _ = partition.Get(input.Item)
 
-	if conditionexpr != nil { //nolint:nestif
-		recordToEvaluate := map[string]*dynamodb.AttributeValue{}
-		if existing, exists := t.records.Get(input.Item); exists {
-			recordToEvaluate = existing
-		}
-		result, err := conditionexpr.Evaluate(recordToEvaluate, input.ExpressionAttributeNames, input.ExpressionAttributeValues)
+	if conditionexpr != nil {
+		result, err := conditionexpr.Evaluate(existing, input.ExpressionAttributeNames, input.ExpressionAttributeValues)
 		if err != nil {
 			return nil, fmt.Errorf("error evaluating condition expression: %w", err)
 		}
 		if !result {
 			checkErr := &dynamodb.ConditionalCheckFailedException{}
 			if returnValuesOnConditionCheckFailure == dynamodb.ReturnValueAllOld {
-				checkErr.Item = recordToEvaluate
+				checkErr.Item = existing
 			}
 			return nil, checkErr
 		}
 	}
 
 	output := &dynamodb.PutItemOutput{}
-	previous, replaced := t.records.ReplaceOrInsert(input.Item)
+	previous, replaced := partition.ReplaceOrInsert(input.Item)
 	if replaced && returnValues == dynamodb.ReturnValueAllOld {
 		output.Attributes = previous
 	}
@@ -105,11 +105,13 @@ func validateKeyAttributeCount(key avmap, t table) error {
 	return nil
 }
 
-func validateAvmapMatchesSchema(item avmap, t table, itemDesc string) error {
+func validateAvmapMatchesSchema(item avmap, t table, itemDesc string) (
+	*dynamodb.AttributeValue, error,
+) {
 	var errs []error
 
 	partitionName := t.schema.partition
-	_, exists := item[partitionName]
+	partitionVal, exists := item[partitionName]
 	if !exists {
 		errs = append(errs, newValidationErrorf("%s does not define required key %s", itemDesc, partitionName))
 	}
@@ -128,7 +130,11 @@ func validateAvmapMatchesSchema(item avmap, t table, itemDesc string) error {
 			}
 		}
 	}
-	return errors.Join(errs...)
+
+	if err := errors.Join(errs...); err != nil {
+		return nil, err
+	}
+	return partitionVal, nil
 }
 
 func checkAttributeType(definedType string, attrVal *dynamodb.AttributeValue) error {

@@ -20,6 +20,7 @@ package fakedynamo
 import (
 	"bytes"
 	"cmp"
+	"encoding/base64"
 	"sync"
 	"time"
 
@@ -57,16 +58,14 @@ type table struct {
 	//  - A composite table is a map from partition key to a list of records
 	//    sorted by their sort key values.
 	//
-	// We choose to store _both_ as a BTree of records.
+	// For simplicity, we implement the simple table as a composite table where
+	// all the sort keys are identical.
 	//
-	//  - A simple table is a BTree of records, sorted by partition key values.
-	//  - A composite table is BTree of records, sorted lexicographically by
-	//    (partition, sort) key pairs.
-	//
-	// This allows us to implement pagination for Scan without thinking too
-	// much. The cost is that our Query implementation must take care to
-	// never cross partitions.
-	records *btree.BTreeG[avmap]
+	// We store each partition separately, which more closely mimics Dynamo's
+	// implementation. We previously considered storing partitions in the same
+	// BTree, using a lexicographic sort on the pair (partition key, sort key).
+	// But this makes it harder to implement a parallel scan.
+	partitions map[string]*btree.BTreeG[avmap]
 }
 
 type tableSchema struct {
@@ -90,41 +89,44 @@ func tableLess(a, b table) bool {
 
 type avmap = map[string]*dynamodb.AttributeValue
 
-func makeRecordLess(schema tableSchema) btree.LessFunc[avmap] {
-	var partitionLess btree.LessFunc[avmap]
-	switch schema.types[schema.partition] {
-	case dynamodb.ScalarAttributeTypeS:
-		partitionLess = func(a, b avmap) bool {
-			return cmp.Less(*a[schema.partition].S, *b[schema.partition].S)
-		}
-	case dynamodb.ScalarAttributeTypeN:
-		partitionLess = func(a, b avmap) bool {
-			return cmp.Less(*a[schema.partition].N, *b[schema.partition].N)
-		}
-	case dynamodb.ScalarAttributeTypeB:
-		partitionLess = func(a, b avmap) bool {
-			return bytes.Compare(a[schema.partition].B, b[schema.partition].B) < 0
-		}
-	default:
-		panic("unreachable")
+func (t *table) getPartition(pval *dynamodb.AttributeValue) *btree.BTreeG[avmap] {
+	var pvalString string
+	switch {
+	case pval.S != nil:
+		pvalString = *pval.S
+	case pval.N != nil:
+		pvalString = *pval.N
+	case pval.B != nil:
+		pvalString = base64.StdEncoding.EncodeToString(pval.B)
 	}
 
+	partition := t.partitions[pvalString]
+	if partition == nil {
+		partition = btree.NewG[avmap](4, makePartitionLess(t.schema))
+		t.partitions[pvalString] = partition
+	}
+	return partition
+}
+
+func makePartitionLess(schema tableSchema) btree.LessFunc[avmap] {
 	if schema.sort == "" {
-		return partitionLess
+		return func(a, b avmap) bool {
+			return false
+		}
 	}
 
 	switch schema.types[schema.sort] {
 	case dynamodb.ScalarAttributeTypeS:
 		return func(a, b avmap) bool {
-			return partitionLess(a, b) || cmp.Less(*a[schema.sort].S, *b[schema.sort].S)
+			return cmp.Less(*a[schema.sort].S, *b[schema.sort].S)
 		}
 	case dynamodb.ScalarAttributeTypeN:
 		return func(a, b avmap) bool {
-			return partitionLess(a, b) || cmp.Less(*a[schema.sort].N, *b[schema.sort].N)
+			return cmp.Less(*a[schema.sort].N, *b[schema.sort].N)
 		}
 	case dynamodb.ScalarAttributeTypeB:
 		return func(a, b avmap) bool {
-			return partitionLess(a, b) || bytes.Compare(a[schema.sort].B, b[schema.sort].B) < 0
+			return bytes.Compare(a[schema.sort].B, b[schema.sort].B) < 0
 		}
 	}
 	panic("unreachable")

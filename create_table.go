@@ -45,10 +45,10 @@ func (d *DB) CreateTable(input *dynamodb.CreateTableInput) (*dynamodb.CreateTabl
 		return nil, errors.New("couldn't parse schema")
 	}
 	_, _ = d.tables.ReplaceOrInsert(table{
-		spec:      input,
-		createdAt: time.Now().UTC(),
-		schema:    *schema,
-		records:   btree.NewG[avmap](2, makeRecordLess(*schema)),
+		spec:       input,
+		createdAt:  time.Now().UTC(),
+		schema:     *schema,
+		partitions: map[string]*btree.BTreeG[avmap]{},
 	})
 	return &dynamodb.CreateTableOutput{
 		TableDescription: d.describeTable(*input.TableName),

@@ -34,6 +34,10 @@ func (e Expression) Evaluate(
 	names map[string]*string,
 	values map[string]*dynamodb.AttributeValue,
 ) (bool, error) {
+	if item == nil {
+		item = map[string]*dynamodb.AttributeValue{}
+	}
+
 	val, err := e.evaluate(e.ast, item, names, values)
 	if err != nil {
 		return false, err

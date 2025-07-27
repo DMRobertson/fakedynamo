@@ -27,16 +27,18 @@ func (d *DB) GetItem(input *dynamodb.GetItemInput) (*dynamodb.GetItemOutput, err
 		return nil, &dynamodb.ResourceNotFoundException{}
 	}
 
+	pVal, schemaErr := validateAvmapMatchesSchema(input.Key, t, "Key")
 	err := errors.Join(
 		validateKeyAttributeCount(input.Key, t),
-		validateAvmapMatchesSchema(input.Key, t, "Key"),
+		schemaErr,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	var output dynamodb.GetItemOutput
-	record, exists := t.records.Get(input.Key)
+	partition := t.getPartition(pVal)
+	record, exists := partition.Get(input.Key)
 	if exists {
 		// TODO: projection expressions here
 		output.Item = record
