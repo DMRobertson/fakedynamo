@@ -27,14 +27,10 @@ func (d *DB) GetItem(input *dynamodb.GetItemInput) (*dynamodb.GetItemOutput, err
 		return nil, &dynamodb.ResourceNotFoundException{}
 	}
 
-	if t.schema.sort == "" && len(input.Key) != 1 {
-		return nil, newValidationError("must provide partition key only")
-	}
-	if t.schema.sort != "" && len(input.Key) != 2 {
-		return nil, newValidationError("must provide partition and sort keys only")
-	}
-
-	err := d.validateItemMatchesSchema(input.Key, t)
+	err := errors.Join(
+		validateKeyAttributeCount(input.Key, t),
+		validateAvmapMatchesSchema(input.Key, t, "Key"),
+	)
 	if err != nil {
 		return nil, err
 	}

@@ -63,7 +63,7 @@ func (d *DB) PutItem(input *dynamodb.PutItemInput) (*dynamodb.PutItemOutput, err
 		return nil, err
 	}
 
-	if err := d.validateItemMatchesSchema(input.Item, t); err != nil {
+	if err := validateAvmapMatchesSchema(input.Item, t, "Item"); err != nil {
 		return nil, err
 	}
 
@@ -94,18 +94,29 @@ func (d *DB) PutItem(input *dynamodb.PutItemInput) (*dynamodb.PutItemOutput, err
 	return output, nil
 }
 
-func (d *DB) validateItemMatchesSchema(item avmap, t table) error {
+func validateKeyAttributeCount(key avmap, t table) error {
+	if t.schema.sort == "" && len(key) != 1 {
+		return newValidationError("must provide partition key only")
+	}
+	if t.schema.sort != "" && len(key) != 2 {
+		return newValidationError("must provide partition and sort keys only")
+	}
+
+	return nil
+}
+
+func validateAvmapMatchesSchema(item avmap, t table, itemDesc string) error {
 	var errs []error
 
 	partitionName := t.schema.partition
 	_, exists := item[partitionName]
 	if !exists {
-		errs = append(errs, newValidationErrorf("Item does not define required key %s", partitionName))
+		errs = append(errs, newValidationErrorf("%s does not define required key %s", itemDesc, partitionName))
 	}
 	if sortName := t.schema.sort; sortName != "" {
 		_, exists = item[sortName]
 		if !exists {
-			errs = append(errs, newValidationErrorf("Item does not define required key %s", sortName))
+			errs = append(errs, newValidationErrorf("%s does not define required key %s", itemDesc, sortName))
 		}
 	}
 
@@ -113,7 +124,7 @@ func (d *DB) validateItemMatchesSchema(item avmap, t table) error {
 		if attrVal := item[attrName]; attrVal != nil {
 			err := checkAttributeType(definedType, attrVal)
 			if err != nil {
-				errs = append(errs, newValidationErrorf("Item.%s: %s", attrName, err.Error()))
+				errs = append(errs, newValidationErrorf("%s.%s: %s", itemDesc, attrName, err.Error()))
 			}
 		}
 	}

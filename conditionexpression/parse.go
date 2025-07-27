@@ -22,12 +22,25 @@ type Expression struct {
 	ast    *node32
 }
 
+const (
+	plainPrint  = false
+	prettyPrint = true
+)
+
 func Parse(s string) (Expression, error) {
+	return parse(s, plainPrint)
+}
+
+func ParsePretty(s string) (Expression, error) {
+	return parse(s, prettyPrint)
+}
+
+func parse(s string, pretty bool) (Expression, error) {
 	// TODO: enforce length limits defined here:
 	//       https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Constraints.html#limits-expression-parameters
 	p := &parser{ //nolint:exhaustruct
 		Buffer: s,
-		Pretty: true,
+		Pretty: pretty,
 	}
 	err := p.Init()
 	if err != nil {
