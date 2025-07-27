@@ -49,8 +49,6 @@ func (d *DB) DeleteItem(input *dynamodb.DeleteItemInput) (*dynamodb.DeleteItemOu
 		}
 	}
 
-	println(condition)
-
 	if err := errors.Join(errs...); err != nil {
 		return nil, err
 	}
@@ -69,16 +67,30 @@ func (d *DB) DeleteItem(input *dynamodb.DeleteItemInput) (*dynamodb.DeleteItemOu
 	}
 
 	previous, exists := t.records.Get(input.Key)
-	// Test condition expr if needed
+	if condition != nil {
+		match, err := condition.Evaluate(previous, input.ExpressionAttributeNames, input.ExpressionAttributeValues)
+		if err != nil {
+			return nil, newValidationErrorf("failed to evaluate condition expression: %s", err)
+		}
+		if !match {
+			checkErr := &dynamodb.ConditionalCheckFailedException{}
+			if returnValuesOnConditionCheckFailure == dynamodb.ReturnValueAllOld {
+				checkErr.Item = previous
+			}
+			return nil, checkErr
+		}
+	}
 
 	_, _ = t.records.Delete(input.Key)
 	// Unless you specify conditions, the DeleteItem is an idempotent operation;
 	// running it multiple times on the same item or attribute does not result
 	// in an error response.
 
-	return &dynamodb.DeleteItemOutput{
-		Attributes: previous,
-	}, nil
+	if returnValues == dynamodb.ReturnValueAllOld {
+		return &dynamodb.DeleteItemOutput{Attributes: previous}, nil
+	} else {
+		return &dynamodb.DeleteItemOutput{}, nil
+	}
 }
 
 func (d *DB) DeleteItemWithContext(_ aws.Context, input *dynamodb.DeleteItemInput, _ ...request.Option) (*dynamodb.DeleteItemOutput, error) {

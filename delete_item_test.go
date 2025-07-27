@@ -177,3 +177,43 @@ func TestDB_DeleteItem_ReturnsOldValues(t *testing.T) {
 	require.NotNil(t, result)
 	assert.Empty(t, result.Attributes)
 }
+
+func TestDB_DeleteItem_EnforcesConditionExpression(t *testing.T) {
+	t.Parallel()
+	db := makeTestDB(t)
+
+	key := map[string]*dynamodb.AttributeValue{
+		"Foo": {S: ptr("hello")},
+	}
+	item := map[string]*dynamodb.AttributeValue{
+		"Bar": {S: ptr("world")},
+	}
+	maps.Copy(item, key)
+
+	simpleTable, err := db.CreateTable(exampleCreateTableInputSimplePrimaryKey())
+	require.NoError(t, err)
+
+	_, err = db.PutItem(&dynamodb.PutItemInput{
+		TableName: simpleTable.TableDescription.TableName,
+		Item:      item,
+	})
+	require.NoError(t, err)
+
+	_, err = db.DeleteItem(&dynamodb.DeleteItemInput{
+		Key:                                 key,
+		TableName:                           simpleTable.TableDescription.TableName,
+		ConditionExpression:                 ptr("attribute_not_exists(Bar)"),
+		ReturnValuesOnConditionCheckFailure: ptr(dynamodb.ReturnValueAllOld),
+	})
+	var checkErr *dynamodb.ConditionalCheckFailedException
+	require.ErrorAs(t, err, &checkErr)
+	assert.Equal(t, item, checkErr.Item)
+
+	// Record has not been deleted
+	getResult, err := db.GetItem(&dynamodb.GetItemInput{
+		Key:       key,
+		TableName: simpleTable.TableDescription.TableName,
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, item, getResult.Item)
+}
