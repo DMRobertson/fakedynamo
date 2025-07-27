@@ -1,14 +1,15 @@
 package fakedynamo
 
 import (
+	"errors"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 )
 
 func (d *DB) Scan(input *dynamodb.ScanInput) (*dynamodb.ScanOutput, error) {
-	// TODO implement me
-	panic("implement me")
+	return nil, errors.New("not implemented lol")
 }
 
 func (d *DB) ScanWithContext(_ aws.Context, input *dynamodb.ScanInput, _ ...request.Option) (*dynamodb.ScanOutput, error) {

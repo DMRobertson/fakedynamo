@@ -66,7 +66,7 @@ func (d *DB) DeleteItem(input *dynamodb.DeleteItemInput) (*dynamodb.DeleteItemOu
 		return nil, err
 	}
 
-	previous, exists := t.records.Get(input.Key)
+	previous, _ := t.records.Get(input.Key)
 	if condition != nil {
 		match, err := condition.Evaluate(previous, input.ExpressionAttributeNames, input.ExpressionAttributeValues)
 		if err != nil {
