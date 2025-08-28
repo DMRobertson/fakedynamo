@@ -124,7 +124,13 @@ func Test_PutItem_ValidationErrors(t *testing.T) {
 			Input: dynamodb.PutItemInput{
 				TableName: ptr("does-not-exist"),
 			},
-			ExpectErrorAs: &dynamodb.ResourceNotFoundException{},
+			// Note: the syntax new(TypeImplementingError) is important.
+			// Just writing &TypeImplementingError{} seems to make errors.As
+			// return true unconditionally, and I'm not 100% sure why; there's
+			// something about the way interfaces and pointers work that I'm
+			// not grokking. See also
+			// https://stackoverflow.com/questions/76110748/using-errors-as-while-iterating-over-test-struct-returning-second-argument-to/76111240#76111240
+			ExpectErrorAs: new(*dynamodb.ResourceNotFoundException),
 		},
 		{
 			Name: "Returns ValidationException for invalid ReturnValues",

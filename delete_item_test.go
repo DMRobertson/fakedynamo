@@ -71,7 +71,7 @@ func TestDB_DeleteItem(t *testing.T) {
 				TableName: ptr("no-such-table"),
 				Key:       map[string]*dynamodb.AttributeValue{},
 			},
-			ExpectErrorAs: &dynamodb.ResourceNotFoundException{},
+			ExpectErrorAs: new(*dynamodb.ResourceNotFoundException),
 		},
 	}
 
