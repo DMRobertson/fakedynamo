@@ -5,6 +5,11 @@ import (
 	"net/http"
 )
 
+func shallowCopy[T any](p *T) *T {
+	clone := *p
+	return &clone
+}
+
 func ptr[T any](v T) *T {
 	return &v
 }
@@ -68,7 +73,7 @@ func (d dummyAwsError) RequestID() string {
 	return ""
 }
 
-// The DynamoDB service doesn't explicitly define a ValidationException error, so it doesn't show up in the
+// The DynamoDB service doesn't explicitly define a ValidationException error, so it doesn't show up in the SDK.
 // https://github.com/aws/aws-sdk/issues/47 and https://github.com/aws/aws-sdk-go-v2/issues/3040
 func newValidationError(message string) error {
 	return dummyAwsError{

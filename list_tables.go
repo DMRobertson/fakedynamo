@@ -11,9 +11,9 @@ func (d *DB) ListTables(input *dynamodb.ListTablesInput) (*dynamodb.ListTablesOu
 		return nil, newValidationError("Limit must be between 1 and 100")
 	}
 
-	inputCopy := *input
+	input = shallowCopy(input)
 	if input.Limit == nil {
-		inputCopy.Limit = ptr[int64](100)
+		input.Limit = ptr[int64](100)
 	}
 
 	start := tableKey(val(input.ExclusiveStartTableName))
@@ -28,7 +28,7 @@ func (d *DB) ListTables(input *dynamodb.ListTablesInput) (*dynamodb.ListTablesOu
 			return true
 		}
 		output.TableNames = append(output.TableNames, t.spec.TableName)
-		return len(output.TableNames) < int(*inputCopy.Limit)
+		return len(output.TableNames) < int(*input.Limit)
 	})
 
 	if len(output.TableNames) == 0 {
@@ -53,9 +53,9 @@ func (d *DB) ListTablesRequest(_ *dynamodb.ListTablesInput) (*request.Request, *
 }
 
 func (d *DB) ListTablesPages(input *dynamodb.ListTablesInput, processPage func(*dynamodb.ListTablesOutput, bool) bool) error {
-	inputCopy := input
+	input = shallowCopy(input)
 	for {
-		output, err := d.ListTables(inputCopy)
+		output, err := d.ListTables(input)
 		if err != nil {
 			return err
 		}
@@ -64,7 +64,7 @@ func (d *DB) ListTablesPages(input *dynamodb.ListTablesInput, processPage func(*
 		if lastPage || !shouldContinue {
 			break
 		}
-		inputCopy.ExclusiveStartTableName = output.LastEvaluatedTableName
+		input.ExclusiveStartTableName = output.LastEvaluatedTableName
 	}
 	return nil
 }

@@ -20,9 +20,21 @@ func (d *DB) ScanRequest(_ *dynamodb.ScanInput) (*request.Request, *dynamodb.Sca
 	panic("not implemented: ScanRequest")
 }
 
-func (d *DB) ScanPages(input *dynamodb.ScanInput, f func(*dynamodb.ScanOutput, bool) bool) error {
-	// TODO implement me
-	panic("implement me")
+func (d *DB) ScanPages(input *dynamodb.ScanInput, processPage func(*dynamodb.ScanOutput, bool) bool) error {
+	input = shallowCopy(input)
+	for {
+		output, err := d.Scan(input)
+		if err != nil {
+			return err
+		}
+		lastPage := output.LastEvaluatedKey == nil
+		shouldContinue := processPage(output, lastPage)
+		if lastPage || !shouldContinue {
+			break
+		}
+		input.ExclusiveStartKey = output.LastEvaluatedKey
+	}
+	return nil
 }
 
 func (d *DB) ScanPagesWithContext(_ aws.Context, input *dynamodb.ScanInput, f func(*dynamodb.ScanOutput, bool) bool, _ ...request.Option) error {
